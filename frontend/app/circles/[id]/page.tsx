@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useAccount, useReadContract } from 'wagmi';
 import { PoolTurnSecureABI } from '@/abi/PoolTurnSecure';
-import { ROSCA_CONTRACT_ADDRESS } from '@/lib/config';
+import { POOLTURN_CONTRACT_ADDRESS } from '@/lib/config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

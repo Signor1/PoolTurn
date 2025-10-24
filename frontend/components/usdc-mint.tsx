@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount, useBlockNumber } from "wagmi";
 import { parseUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,17 +11,30 @@ import { toast } from "sonner";
 import { SUPPORTED_TOKENS } from "@/lib/config";
 import { USDCABI } from "@/abi/USDCABI";
 import { formatUnits } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function USDCMint() {
   const [mintAmount, setMintAmount] = useState("100");
   const { address } = useAccount();
+  const queryClient = useQueryClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data: balance } = useReadContract({
+  const { data: balance, queryKey } = useReadContract({
     address: SUPPORTED_TOKENS.USDC.address,
     abi: USDCABI,
     functionName: "balanceOf",
     args: [address || "0x0"],
+    query: {
+      refetchInterval: 5000,
+    }
   });
+
+  // Watch for new blocks and invalidate queries
+  useEffect(() => {
+    if (blockNumber) {
+      queryClient.invalidateQueries({ queryKey });
+    }
+  }, [blockNumber, queryClient, queryKey]);
 
   const { writeContract, data: hash, isPending } = useWriteContract();
 

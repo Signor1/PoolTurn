@@ -1,7 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useReadContract, useReadContracts, useBlockNumber } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import { PoolTurnSecureABI } from '@/abi/PoolTurnSecure';
 import { POOLTURN_CONTRACT_ADDRESS } from '@/lib/config';
 
@@ -45,23 +44,24 @@ export interface FormattedCircle {
 
 // Hook to get total number of circles
 export const useCircleCount = () => {
-  const queryKey = ['circleCount'];
   const queryClient = useQueryClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data: nextCircleId, isLoading, error } = useReadContract({
+  const { data: nextCircleId, isLoading, error, queryKey } = useReadContract({
     address: POOLTURN_CONTRACT_ADDRESS,
     abi: PoolTurnSecureABI,
     functionName: 'nextCircleId',
+    query: {
+      refetchInterval: 5000, // Refetch every 5 seconds
+    }
   });
 
-  // Watch for new blocks to invalidate queries
-  const { data: blockNumber } = useBlockNumber({ watch: true });
-
+  // Watch for new blocks and invalidate queries
   useEffect(() => {
     if (blockNumber) {
       queryClient.invalidateQueries({ queryKey });
     }
-  }, [blockNumber, queryClient]);
+  }, [blockNumber, queryClient, queryKey]);
 
   return {
     totalCircles: nextCircleId ? Number(nextCircleId) - 1 : 0,
@@ -82,23 +82,25 @@ export const useCircleIds = () => {
 
 // Hook to get individual circle info
 export const useCircleInfo = (circleId: bigint) => {
-  const queryKey = ['circleInfo', circleId.toString()];
   const queryClient = useQueryClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data, isLoading, error } = useReadContract({
+  const { data, isLoading, error, queryKey } = useReadContract({
     address: POOLTURN_CONTRACT_ADDRESS,
     abi: PoolTurnSecureABI,
     functionName: 'getCircleInfo',
     args: [circleId],
+    query: {
+      refetchInterval: 5000,
+    }
   });
 
-  const { data: blockNumber } = useBlockNumber({ watch: true });
-
+  // Watch for new blocks and invalidate queries
   useEffect(() => {
     if (blockNumber) {
       queryClient.invalidateQueries({ queryKey });
     }
-  }, [blockNumber, queryClient]);
+  }, [blockNumber, queryClient, queryKey]);
 
   const circleInfo = useMemo((): CircleInfo | null => {
     if (!data) return null;
@@ -123,23 +125,25 @@ export const useCircleInfo = (circleId: bigint) => {
 
 // Hook to get circle details (name & description)
 export const useCircleDetails = (circleId: bigint) => {
-  const queryKey = ['circleDetails', circleId.toString()];
   const queryClient = useQueryClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data, isLoading, error } = useReadContract({
+  const { data, isLoading, error, queryKey } = useReadContract({
     address: POOLTURN_CONTRACT_ADDRESS,
     abi: PoolTurnSecureABI,
     functionName: 'getCircleDetails',
     args: [circleId],
+    query: {
+      refetchInterval: 5000,
+    }
   });
 
-  const { data: blockNumber } = useBlockNumber({ watch: true });
-
+  // Watch for new blocks and invalidate queries
   useEffect(() => {
     if (blockNumber) {
       queryClient.invalidateQueries({ queryKey });
     }
-  }, [blockNumber, queryClient]);
+  }, [blockNumber, queryClient, queryKey]);
 
   const circleDetails = useMemo((): CircleDetails | null => {
     if (!data) return null;
@@ -155,23 +159,25 @@ export const useCircleDetails = (circleId: bigint) => {
 
 // Hook to get circle members
 export const useCircleMembers = (circleId: bigint) => {
-  const queryKey = ['circleMembers', circleId.toString()];
   const queryClient = useQueryClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data: members, isLoading, error } = useReadContract({
+  const { data: members, isLoading, error, queryKey } = useReadContract({
     address: POOLTURN_CONTRACT_ADDRESS,
     abi: PoolTurnSecureABI,
     functionName: 'getMembers',
     args: [circleId],
+    query: {
+      refetchInterval: 5000,
+    }
   });
 
-  const { data: blockNumber } = useBlockNumber({ watch: true });
-
+  // Watch for new blocks and invalidate queries
   useEffect(() => {
     if (blockNumber) {
       queryClient.invalidateQueries({ queryKey });
     }
-  }, [blockNumber, queryClient]);
+  }, [blockNumber, queryClient, queryKey]);
 
   return {
     members: members as readonly string[] | undefined,
@@ -185,6 +191,7 @@ export const useAllCirclesMulticall = () => {
   const queryKey = ['allCircles'];
   const queryClient = useQueryClient();
   const circleIds = useCircleIds();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
   // Prepare contracts array for useReadContracts
   const contracts = useMemo(() => {
@@ -216,20 +223,20 @@ export const useAllCirclesMulticall = () => {
   }, [circleIds]);
 
   // Use useReadContracts for batch reading
-  const { data: contractResults, isLoading, error } = useReadContracts({
+  const { data: contractResults, isLoading, error, queryKey: contractsQueryKey } = useReadContracts({
     contracts,
     query: {
       enabled: contracts.length > 0,
+      refetchInterval: 5000,
     },
   });
 
-  const { data: blockNumber } = useBlockNumber({ watch: true });
-
+  // Watch for new blocks and invalidate queries
   useEffect(() => {
     if (blockNumber) {
-      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: contractsQueryKey });
     }
-  }, [blockNumber, queryClient]);
+  }, [blockNumber, queryClient, contractsQueryKey]);
 
   // Process contract results
   const circles = useMemo((): FormattedCircle[] => {

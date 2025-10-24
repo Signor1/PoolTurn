@@ -6,8 +6,10 @@ import {
     useWaitForTransactionReceipt,
     useWriteContract,
     useReadContract,
+    useBlockNumber,
     type BaseError,
 } from "wagmi";
+import { useQueryClient } from '@tanstack/react-query';
 import { USDCABI } from '@/abi/USDCABI';
 
 // Hook for creating circles
@@ -322,33 +324,58 @@ export const useWithdrawCollateral = () => {
 };
 
 export const useCircleData = (circleId: bigint) => {
-    const { data: circleInfo, isLoading: isLoadingInfo, error: infoError } = useReadContract({
+    const queryClient = useQueryClient();
+    const { data: blockNumber } = useBlockNumber({ watch: true });
+
+    const { data: circleInfo, isLoading: isLoadingInfo, error: infoError, queryKey: infoQueryKey } = useReadContract({
         address: POOLTURN_CONTRACT_ADDRESS,
         abi: PoolTurnSecureABI,
         functionName: 'getCircleInfo',
         args: [circleId],
+        query: {
+            refetchInterval: 5000,
+        }
     });
 
-    const { data: members, isLoading: isLoadingMembers, error: membersError } = useReadContract({
+    const { data: members, isLoading: isLoadingMembers, error: membersError, queryKey: membersQueryKey } = useReadContract({
         address: POOLTURN_CONTRACT_ADDRESS,
         abi: PoolTurnSecureABI,
         functionName: 'getMembers',
         args: [circleId],
+        query: {
+            refetchInterval: 5000,
+        }
     });
 
-    const { data: payoutOrder, isLoading: isLoadingOrder, error: orderError } = useReadContract({
+    const { data: payoutOrder, isLoading: isLoadingOrder, error: orderError, queryKey: orderQueryKey } = useReadContract({
         address: POOLTURN_CONTRACT_ADDRESS,
         abi: PoolTurnSecureABI,
         functionName: 'getPayoutOrder',
         args: [circleId],
+        query: {
+            refetchInterval: 5000,
+        }
     });
 
-    const { data: insurancePool, isLoading: isLoadingInsurance, error: insuranceError } = useReadContract({
+    const { data: insurancePool, isLoading: isLoadingInsurance, error: insuranceError, queryKey: insuranceQueryKey } = useReadContract({
         address: POOLTURN_CONTRACT_ADDRESS,
         abi: PoolTurnSecureABI,
         functionName: 'getInsurancePool',
         args: [circleId],
+        query: {
+            refetchInterval: 5000,
+        }
     });
+
+    // Watch for new blocks and invalidate all queries
+    useEffect(() => {
+        if (blockNumber) {
+            queryClient.invalidateQueries({ queryKey: infoQueryKey });
+            queryClient.invalidateQueries({ queryKey: membersQueryKey });
+            queryClient.invalidateQueries({ queryKey: orderQueryKey });
+            queryClient.invalidateQueries({ queryKey: insuranceQueryKey });
+        }
+    }, [blockNumber, queryClient, infoQueryKey, membersQueryKey, orderQueryKey, insuranceQueryKey]);
 
     return {
         circleInfo,
@@ -362,12 +389,25 @@ export const useCircleData = (circleId: bigint) => {
 
 // Hook for reading member data
 export const useMemberData = (circleId: bigint, memberAddress: `0x${string}`) => {
-    const { data: memberInfo, isLoading, error } = useReadContract({
+    const queryClient = useQueryClient();
+    const { data: blockNumber } = useBlockNumber({ watch: true });
+
+    const { data: memberInfo, isLoading, error, queryKey } = useReadContract({
         address: POOLTURN_CONTRACT_ADDRESS,
         abi: PoolTurnSecureABI,
         functionName: 'getMemberInfo',
         args: [circleId, memberAddress],
+        query: {
+            refetchInterval: 5000,
+        }
     });
+
+    // Watch for new blocks and invalidate queries
+    useEffect(() => {
+        if (blockNumber) {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    }, [blockNumber, queryClient, queryKey]);
 
     return {
         memberInfo,
@@ -378,12 +418,25 @@ export const useMemberData = (circleId: bigint, memberAddress: `0x${string}`) =>
 
 // Hook for reading user's pending payouts
 export const usePendingPayout = (circleId: bigint, userAddress: `0x${string}`) => {
-    const { data: pendingAmount, isLoading, error } = useReadContract({
+    const queryClient = useQueryClient();
+    const { data: blockNumber } = useBlockNumber({ watch: true });
+
+    const { data: pendingAmount, isLoading, error, queryKey } = useReadContract({
         address: POOLTURN_CONTRACT_ADDRESS,
         abi: PoolTurnSecureABI,
         functionName: 'pendingPayouts',
         args: [circleId, userAddress],
+        query: {
+            refetchInterval: 5000,
+        }
     });
+
+    // Watch for new blocks and invalidate queries
+    useEffect(() => {
+        if (blockNumber) {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    }, [blockNumber, queryClient, queryKey]);
 
     return {
         pendingAmount,
