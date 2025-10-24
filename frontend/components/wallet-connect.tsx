@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { abbreviateHash } from '@/lib/utils';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAppKit } from '@reown/appkit/react';
 import { ChevronDown, LogOut, Wallet } from 'lucide-react';
 import { useAccount, useDisconnect, useBalance } from 'wagmi';
 import { base } from "viem/chains";
@@ -23,6 +23,7 @@ interface WalletConnectProps {
 
 export const WalletConnect = ({ isMobile = false, onDisconnect }: WalletConnectProps) => {
     const [isMounted, setIsMounted] = useState(false);
+    const { open } = useAppKit();
 
     // Prevent SSR issues by only rendering after mount
     useEffect(() => {
@@ -64,98 +65,90 @@ export const WalletConnect = ({ isMobile = false, onDisconnect }: WalletConnectP
         onDisconnect?.();
     };
 
+    const handleConnect = () => {
+        open();
+    };
+
     // Mobile version
     if (isMobile) {
-        return (
-            <ConnectButton.Custom>
-                {({ openConnectModal, account }) =>
-                    account && address && isConnected ? (
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 p-2 glass-morphism rounded-lg">
-                                <Avatar className="w-8 h-8">
-                                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                                        {address.slice(2, 4).toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="text-foreground font-medium">{abbreviateHash(address)}</p>
-                                    <p className="text-muted-foreground text-sm">{formatBalance(balance)} STT</p>
-                                </div>
-                            </div>
-                            <Button
-                                onClick={handleDisconnect}
-                                variant="outline"
-                                className="w-full glass-morphism border-red-500/30 text-red-500 bg-transparent"
-                            >
-                                <LogOut className="w-4 h-4 mr-2" />
-                                Disconnect
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button
-                            onClick={openConnectModal}
-                            className="flex items-center gap-2 glass-morphism border-primary/30 text-primary hover:text-primary-foreground bg-transparent w-full"
-                            variant="outline"
-                        >
-                            <Wallet className="w-4 h-4" />
-                            Connect Wallet
-                        </Button>
-                    )
-                }
-            </ConnectButton.Custom>
+        return address && isConnected ? (
+            <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 glass-morphism rounded-lg">
+                    <Avatar className="w-8 h-8">
+                        <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                            {address.slice(2, 4).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="text-foreground font-medium">{abbreviateHash(address)}</p>
+                        <p className="text-muted-foreground text-sm">{formatBalance(balance)} ETH</p>
+                    </div>
+                </div>
+                <Button
+                    onClick={handleDisconnect}
+                    variant="outline"
+                    className="w-full glass-morphism border-red-500/30 text-red-500 bg-transparent"
+                >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Disconnect
+                </Button>
+            </div>
+        ) : (
+            <Button
+                onClick={handleConnect}
+                className="flex items-center gap-2 glass-morphism border-primary/30 text-primary hover:text-primary-foreground bg-transparent w-full"
+                variant="outline"
+            >
+                <Wallet className="w-4 h-4" />
+                Connect Wallet
+            </Button>
         );
     }
 
     // Desktop version
-    return (
-        <ConnectButton.Custom>
-            {({ openConnectModal, account }) =>
-                account && address && isConnected ? (
-                    <div className="flex items-center gap-3">
-                        {/* Network Status */}
-                        <Badge className={isBaseNetwork ? "bg-primary/20 text-primary text-sm" : "bg-yellow-500/20 text-yellow-500"}>
-                            {isBaseNetwork ? "Base" : "Wrong Network"}
-                        </Badge>
+    return address && isConnected ? (
+        <div className="flex items-center gap-3">
+            {/* Network Status */}
+            <Badge className={isBaseNetwork ? "bg-primary/20 text-primary text-sm" : "bg-yellow-500/20 text-yellow-500"}>
+                {isBaseNetwork ? "Base" : "Wrong Network"}
+            </Badge>
 
-                        {/* Wallet Dropdown */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className="flex h-14 items-start gap-3 glass-morphism border-primary/30 text-foreground hover:bg-primary/10 bg-transparent"
-                                >
-                                    <Avatar className="w-6 h-6">
-                                        <AvatarImage src="https://github.com/shadcn.png" alt="user" />
-                                        <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                                            {address.slice(2, 4).toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-sm text-white font-medium">{abbreviateHash(address)}</span>
-                                        <span className="text-xs text-muted-foreground">{formatBalance(balance)} ETH</span>
-                                    </div>
-                                    <ChevronDown className="w-4 h-4 text-white" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="glass-morphism border-primary/20 w-48">
-                                <DropdownMenuItem onClick={handleDisconnect} className="flex items-center gap-2 text-red-500">
-                                    <LogOut className="w-4 h-4" />
-                                    Disconnect
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                ) : (
+            {/* Wallet Dropdown */}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                     <Button
-                        onClick={openConnectModal}
-                        className="flex items-center gap-2 glass-morphism border-primary/30 text-primary hover:bg-primary/10 hover:text-white bg-transparent"
                         variant="outline"
+                        className="flex h-14 items-start gap-3 glass-morphism border-primary/30 text-foreground hover:bg-primary/10 bg-transparent"
                     >
-                        <Wallet className="w-4 h-4" />
-                        Connect Wallet
+                        <Avatar className="w-6 h-6">
+                            <AvatarImage src="https://github.com/shadcn.png" alt="user" />
+                            <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                                {address.slice(2, 4).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col items-center">
+                            <span className="text-sm text-white font-medium">{abbreviateHash(address)}</span>
+                            <span className="text-xs text-muted-foreground">{formatBalance(balance)} ETH</span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-white" />
                     </Button>
-                )
-            }
-        </ConnectButton.Custom>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="glass-morphism border-primary/20 w-48">
+                    <DropdownMenuItem onClick={handleDisconnect} className="flex items-center gap-2 text-red-500">
+                        <LogOut className="w-4 h-4" />
+                        Disconnect
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    ) : (
+        <Button
+            onClick={handleConnect}
+            className="flex items-center gap-2 glass-morphism border-primary/30 text-primary hover:bg-primary/10 hover:text-white bg-transparent"
+            variant="outline"
+        >
+            <Wallet className="w-4 h-4" />
+            Connect Wallet
+        </Button>
     );
 };
