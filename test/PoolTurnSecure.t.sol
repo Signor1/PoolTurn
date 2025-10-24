@@ -342,13 +342,27 @@ contract PoolTurnSecureTest is Test {
         assertEq(startTimestamp, block.timestamp);
         assertEq(currentRound, 1);
 
-        // Verify payout order was set deterministically
+        // Verify payout order was set (shuffled, not deterministic by join order)
         address[] memory payoutOrder = poolturn.getPayoutOrder(circleId);
         assertEq(payoutOrder.length, 4);
-        assertEq(payoutOrder[0], alice);
-        assertEq(payoutOrder[1], bob);
-        assertEq(payoutOrder[2], carol);
-        assertEq(payoutOrder[3], dave);
+
+        // Verify all members are in the payout order (order may be shuffled)
+        bool hasAlice = false;
+        bool hasBob = false;
+        bool hasCarol = false;
+        bool hasDave = false;
+
+        for (uint256 i = 0; i < payoutOrder.length; i++) {
+            if (payoutOrder[i] == alice) hasAlice = true;
+            if (payoutOrder[i] == bob) hasBob = true;
+            if (payoutOrder[i] == carol) hasCarol = true;
+            if (payoutOrder[i] == dave) hasDave = true;
+        }
+
+        assertTrue(hasAlice, "Alice not in payout order");
+        assertTrue(hasBob, "Bob not in payout order");
+        assertTrue(hasCarol, "Carol not in payout order");
+        assertTrue(hasDave, "Dave not in payout order");
     }
 
     function testJoinCircleFailsWhenNotOpen() public {
@@ -582,6 +596,8 @@ contract PoolTurnSecureTest is Test {
         joinCircleWithApproval(circleId, carol);
         joinCircleWithApproval(circleId, dave);
 
+        (,,,,,,, uint256 startTimestamp,,, ) = poolturn.getCircleInfo(circleId);
+
         // Simulate 3 rounds where dave defaults each time
         for (uint256 round = 1; round <= 3; round++) {
             // Others contribute
@@ -589,8 +605,11 @@ contract PoolTurnSecureTest is Test {
             contributeWithApproval(circleId, bob);
             contributeWithApproval(circleId, carol);
 
-            // Fast forward and finalize
-            vm.warp(block.timestamp + PERIOD_DURATION + 1);
+            // Fast forward to end of current round (fixed schedule)
+            // Round N starts at startTimestamp + (N-1) * PERIOD_DURATION
+            // Round N ends at startTimestamp + N * PERIOD_DURATION
+            uint256 roundEndTime = startTimestamp + (round * PERIOD_DURATION);
+            vm.warp(roundEndTime + 1);
 
             if (round == 3) {
                 vm.expectEmit(true, true, false, true);
@@ -598,17 +617,14 @@ contract PoolTurnSecureTest is Test {
             }
 
             poolturn.finalizeRoundIfExpired(circleId);
-
-            // Skip claiming payouts to continue to next round
-            if (round < 3) {
-                vm.warp(block.timestamp + 1);
-            }
         }
 
-        // Verify dave is banned
+        // Verify dave is banned (both locally and globally)
         (,,, uint256 defaults, bool banned,) = poolturn.getMemberInfo(circleId, dave);
         assertEq(defaults, 3);
         assertTrue(banned);
+        assertTrue(poolturn.globallyBanned(dave));
+        assertEq(poolturn.globalDefaults(dave), 3);
     }
 
     // ================================
