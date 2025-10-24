@@ -2,14 +2,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, Quote } from "lucide-react"
 
-export function RoscaTestimonials() {
+export function PoolTurnTestimonials() {
   const testimonials = [
     {
       name: "Maria Rodriguez",
       role: "Small Business Owner",
       avatar: "/digital-artist-avatar.png",
       content:
-        "RoscaSecure helped me save for my business expansion. The collateral protection gave me confidence, and I built great relationships with my circle members. Saved $5000 in 10 months!",
+        "PoolTurn helped me save for my business expansion. The collateral protection gave me confidence, and I built great relationships with my circle members. Saved $5000 in 10 months!",
       rating: 5,
       badge: "Entrepreneur",
     },
@@ -27,7 +27,7 @@ export function RoscaTestimonials() {
       role: "Community Organizer",
       avatar: "/web3-developer-avatar.png",
       content:
-        "I've organized traditional ROSCAs for years. RoscaSecure brings the same community spirit with modern security. My group loves the automated system and trust features.",
+        "I've organized traditional PoolTurn circles for years. PoolTurn brings the same community spirit with modern security. My group loves the automated system and trust features.",
       rating: 5,
       badge: "Organizer",
     },
@@ -44,7 +44,7 @@ export function RoscaTestimonials() {
           Trusted by <span className="holographic-text">Savers</span> & Communities
         </h2>
         <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
-          Join thousands of satisfied members who have achieved their savings goals with RoscaSecure
+          Join thousands of satisfied members who have achieved their savings goals with PoolTurn
         </p>
       </div>
 

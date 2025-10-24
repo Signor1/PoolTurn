@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Shield, Zap, DollarSign, Users, Globe } from "lucide-react"
 
-export function RoscaFeatures() {
+export function PoolTurnFeatures() {
   const features = [
     {
       icon: Shield,
@@ -65,7 +65,7 @@ export function RoscaFeatures() {
           Everything You Need to <span className="holographic-text">Save Together</span>
         </h2>
         <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
-          RoscaSecure combines traditional community savings wisdom with blockchain security to create the most
+          PoolTurn combines traditional community savings wisdom with blockchain security to create the most
           trusted decentralized savings platform.
         </p>
       </div>

@@ -1,6 +1,6 @@
-# RoscaSecure - Decentralized Community Savings Platform
+# PoolTurn - Decentralized Community Savings Platform
 
-RoscaSecure is a blockchain-based ROSCA (Rotating Savings and Credit Association) platform that enables secure community savings circles with collateral protection. Built on Somnia Testnet with a modern Next.js frontend.
+PoolTurn is a blockchain-based Rotating Savings and Credit Association (PoolTurn) platform that enables secure community savings circles with collateral protection. Built on Base Mainnet with a modern Next.js frontend.
 
 ## 🌟 Features
 
@@ -17,15 +17,15 @@ RoscaSecure is a blockchain-based ROSCA (Rotating Savings and Credit Association
 
 - **Modern UI**: Built with Next.js 15, Tailwind CSS, and shadcn/ui components
 - **Web3 Integration**: wagmi + RainbowKit for seamless wallet connections
-- **Somnia Network**: Optimized for fast, low-cost transactions
+- **Base Network**: Optimized for fast, low-cost transactions on Ethereum L2
 - **Responsive Design**: Mobile-first design with glassmorphism effects
 - **Real-time Updates**: Live circle status and payment tracking
 
 ## 🏗️ Architecture
 
 ```
-├── src/Rosca.sol           # Main RoscaSecure smart contract
-├── test/RoscaSecure.t.sol  # Comprehensive test suite (33 tests)
+├── src/PoolTurnSecure.sol           # Main PoolTurn smart contract
+├── test/PoolTurn.t.sol  # Comprehensive test suite (33 tests)
 ├── frontend/               # Next.js application
 │   ├── app/               # App Router pages
 │   ├── components/        # UI components
@@ -85,9 +85,12 @@ Create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_wallet_connect_project_id
-NEXT_PUBLIC_CHAIN_ID=50312
-NEXT_PUBLIC_RPC_URL=https://dream-rpc.somnia.network
-NEXT_PUBLIC_ROSCA_CONTRACT_ADDRESS=your_deployed_contract_address
+NEXT_PUBLIC_CHAIN_ID=8453
+NEXT_PUBLIC_RPC_URL=https://base-mainnet.g.alchemy.com/v2/your_alchemy_key
+NEXT_PUBLIC_POOLTURN_CONTRACT_ADDRESS=your_deployed_contract_address
+NEXT_PUBLIC_MULTICALL3_ADDRESS=0xcA11bde05977b3631167028862bE2a173976CA11
+NEXT_PUBLIC_USDC_ADDRESS=your_usdc_token_address
+NEXT_PUBLIC_USDT_ADDRESS=your_usdt_token_address
 ```
 
 ## 📋 How It Works
@@ -137,25 +140,29 @@ forge test -vv
 
 ## 🌐 Network Information
 
-**Somnia Testnet**
-- Chain ID: 50312
-- RPC URL: https://dream-rpc.somnia.network
-- Explorer: https://shannon-explorer.somnia.network
-- Native Currency: STT
+**Base Mainnet**
+- Chain ID: 8453
+- RPC URL: https://base-mainnet.g.alchemy.com/v2/{YOUR_API_KEY}
+- Explorer: https://basescan.org
+- Native Currency: ETH
 
 ### 📋 Deployed Contracts
 
-**RoscaSecure Main Contract**
-- Address: [0x0252983fAD6caC37Ca4BcdeF9f1f7DFe3960D041](https://shannon-explorer.somnia.network/address/0x0252983fAD6caC37Ca4BcdeF9f1f7DFe3960D041)
-- Description: Main RoscaSecure smart contract handling circle creation, member management, and payout distribution
+**PoolTurnSecure Main Contract**
+- Address: [0x0530776AF89fEBb03933fa27613Fc6C7446a1b10](https://basescan.org/address/0x0530776AF89fEBb03933fa27613Fc6C7446a1b10)
+- Description: Main PoolTurn smart contract handling circle creation, member management, and payout distribution
 
 **Multicall3 Contract**
-- Address: [0x841b8199E6d3Db3C6f264f6C2bd8848b3cA64223](https://shannon-explorer.somnia.network/address/0x841b8199E6d3Db3C6f264f6C2bd8848b3cA64223)
+- Address: [0xcA11bde05977b3631167028862bE2a173976CA11](https://basescan.org/address/0xcA11bde05977b3631167028862bE2a173976CA11)
 - Description: Efficient batch contract calls for fetching multiple circle data
 
-**USDC Test Token**
-- Address: [0x8dc1e7C7e86568458D7c529f8C87aC8c39a576f1](https://shannon-explorer.somnia.network/address/0x8dc1e7C7e86568458D7c529f8C87aC8c39a576f1)
-- Description: Test USDC token for contributions and payments
+**USDC Mock Token**
+- Address: [0x6b54e6ec75eEb7c6cD1889cD3cBB858E6734471D](https://basescan.org/address/0x6b54e6ec75eEb7c6cD1889cD3cBB858E6734471D)
+- Description: Mock USDC token deployed for this project (6 decimals)
+
+**USDT Mock Token**
+- Address: [0x6c925BE58927c5eD7f907a8126BC6F733F87c3B0](https://basescan.org/address/0x6c925BE58927c5eD7f907a8126BC6F733F87c3B0)
+- Description: Mock USDT token deployed for this project (6 decimals)
 
 
 ## 📦 Technology Stack
@@ -193,4 +200,9 @@ forge test -vv
 
 ## ⚠️ Disclaimer
 
-This project is for educational and testing purposes. Use on testnet only. Conduct thorough audits before any mainnet deployment.
+**Important Notice:**
+- This project is deployed on **Base Mainnet** but uses **mock ERC20 tokens** (USDC and USDT) that were deployed specifically for this project.
+- These mock tokens are NOT the official USDC/USDT tokens. Use with caution.
+- This smart contract has **NOT been professionally audited**. Use at your own risk.
+- For production use with real funds, conduct thorough security audits and use official tokens.
+- The developers are not responsible for any loss of funds.

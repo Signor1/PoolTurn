@@ -2,8 +2,8 @@
 pragma solidity ^0.8.19;
 
 /*
-  RoscaSecure.sol
-  Collateral-protected ROSCA (Rotating Savings and Credit Association)
+  PoolTurnSecure.sol
+  Collateral-protected PoolTurn (Rotating Savings and Credit Association)
   - Pull-payment model: winners must claim payout (avoids reentrancy on transfers)
   - Collateral slashing to cover missed contributions
   - Insurance pool to handle multi-default situations
@@ -18,7 +18,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract RoscaSecure is ReentrancyGuard, Pausable, Ownable {
+contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
 
     // --- Constants ---
@@ -128,7 +128,7 @@ contract RoscaSecure is ReentrancyGuard, Pausable, Ownable {
     // // --- Public / External functions ---
 
     /**
-     * Create a ROSCA circle. Creator is not auto-joined.
+     * Create a PoolTurn circle. Creator is not auto-joined.
      * payoutOrder can be provided now (preferred) or later when all members join.
      */
     function createCircle(

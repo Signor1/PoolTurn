@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Users, Clock, Shield, Info, DollarSign, Calendar, AlertCircle, CheckCircle } from "lucide-react"
 import { SUPPORTED_TOKENS, PERIOD_PRESETS, CIRCLE_LIMITS, DEFAULT_CIRCLE_VALUES } from "@/lib/config"
-import { useCreateCircle } from "@/hooks/useRoscaContract"
+import { useCreateCircle } from "@/hooks/usePoolTurnContract"
 import { useAccount } from "wagmi"
 import { parseUnits } from "viem"
 

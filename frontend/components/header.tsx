@@ -42,10 +42,10 @@ export function Header() {
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">RS</span>
+                <span className="text-white font-bold text-sm">PT</span>
               </div>
               <span className=" text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                RoscaSecure
+                PoolTurn
               </span>
             </Link>
           </div>

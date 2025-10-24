@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css'
 import { Header } from '@/components/header'
-import { RoscaFooter } from '@/components/rosca-footer'
+import { PoolTurnFooter } from '@/components/poolturn-footer'
 import { Providers } from '@/contexts/provider'
 import { Toaster } from 'sonner';
 
@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'RoscaSecure - Decentralized Community Savings Circles',
+  title: 'PoolTurn - Decentralized Community Savings Circles',
   description: 'Secure community savings platform with collateral-protected ROSCA circles. Join trusted savings groups, earn reliable returns, and build financial resilience with blockchain technology on Somnia Network.',
   keywords: [
     'ROSCA',
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     'Web3 finance',
     'peer-to-peer savings'
   ],
-  authors: [{ name: 'RoscaSecure Team' }],
-  creator: 'RoscaSecure',
-  publisher: 'RoscaSecure',
+  authors: [{ name: 'PoolTurn Team' }],
+  creator: 'PoolTurn',
+  publisher: 'PoolTurn',
 }
 
 export default function RootLayout({
@@ -47,7 +47,7 @@ export default function RootLayout({
         <Providers>
           <Header />
           {children}
-          <RoscaFooter />
+          <PoolTurnFooter />
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

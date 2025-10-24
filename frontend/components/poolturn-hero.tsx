@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Shield, Users, Coins, TrendingUp } from "lucide-react"
 import Link from "next/link"
 
-export function RoscaHero() {
+export function PoolTurnHero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 py-20">
       <div className="absolute inset-0 overflow-hidden">
@@ -19,7 +19,7 @@ export function RoscaHero() {
         </Badge>
 
         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-          <span className="holographic-text">RoscaSecure</span>
+          <span className="holographic-text">PoolTurn</span>
           <br />
           <span className="text-foreground">Community Savings Circles</span>
         </h1>

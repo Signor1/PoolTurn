@@ -1,5 +1,5 @@
-import { RoscaSecureABI } from '@/abi/RoscaSecure';
-import { ROSCA_CONTRACT_ADDRESS, SUPPORTED_TOKENS } from '@/lib/config';
+import { PoolTurnSecureABI } from '@/abi/PoolTurnSecure';
+import { POOLTURN_CONTRACT_ADDRESS, SUPPORTED_TOKENS } from '@/lib/config';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -27,8 +27,8 @@ export const useCreateCircle = () => {
     }) => {
         try {
             writeContract({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'createCircle',
                 args: [
                     params.name,
@@ -88,7 +88,7 @@ export const useContributeFlow = () => {
         address: SUPPORTED_TOKENS.USDC.address,
         abi: USDCABI,
         functionName: 'allowance',
-        args: [userToCheck || '0x0', ROSCA_CONTRACT_ADDRESS],
+        args: [userToCheck || '0x0', POOLTURN_CONTRACT_ADDRESS],
         query: {
             enabled: !!userToCheck
         }
@@ -112,8 +112,8 @@ export const useContributeFlow = () => {
             // Skip approval, go directly to contribute
             setCurrentStep('contributing');
             writeContribute({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'contribute',
                 args: [circleId],
             });
@@ -124,7 +124,7 @@ export const useContributeFlow = () => {
                 address: SUPPORTED_TOKENS.USDC.address,
                 abi: USDCABI,
                 functionName: 'approve',
-                args: [ROSCA_CONTRACT_ADDRESS, contributionAmount],
+                args: [POOLTURN_CONTRACT_ADDRESS, contributionAmount],
             });
         }
     }, [writeApprove, writeContribute, refetchAllowance]);
@@ -162,8 +162,8 @@ export const useContributeFlow = () => {
         if (currentStep === 'approving' && isApproveConfirmed) {
             setCurrentStep('contributing');
             writeContribute({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'contribute',
                 args: [circleId],
             });
@@ -192,8 +192,8 @@ export const useContribute = () => {
     const contribute = useCallback(async (circleId: bigint) => {
         try {
             writeContract({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'contribute',
                 args: [circleId],
             });
@@ -237,8 +237,8 @@ export const useClaimPayout = () => {
     const claimPayout = useCallback(async (circleId: bigint) => {
         try {
             writeContract({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'claimPayout',
                 args: [circleId],
             });
@@ -282,8 +282,8 @@ export const useWithdrawCollateral = () => {
     const withdrawCollateral = useCallback(async (circleId: bigint) => {
         try {
             writeContract({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'withdrawCollateral',
                 args: [circleId],
             });
@@ -323,29 +323,29 @@ export const useWithdrawCollateral = () => {
 
 export const useCircleData = (circleId: bigint) => {
     const { data: circleInfo, isLoading: isLoadingInfo, error: infoError } = useReadContract({
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getCircleInfo',
         args: [circleId],
     });
 
     const { data: members, isLoading: isLoadingMembers, error: membersError } = useReadContract({
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getMembers',
         args: [circleId],
     });
 
     const { data: payoutOrder, isLoading: isLoadingOrder, error: orderError } = useReadContract({
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getPayoutOrder',
         args: [circleId],
     });
 
     const { data: insurancePool, isLoading: isLoadingInsurance, error: insuranceError } = useReadContract({
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getInsurancePool',
         args: [circleId],
     });
@@ -363,8 +363,8 @@ export const useCircleData = (circleId: bigint) => {
 // Hook for reading member data
 export const useMemberData = (circleId: bigint, memberAddress: `0x${string}`) => {
     const { data: memberInfo, isLoading, error } = useReadContract({
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getMemberInfo',
         args: [circleId, memberAddress],
     });
@@ -379,8 +379,8 @@ export const useMemberData = (circleId: bigint, memberAddress: `0x${string}`) =>
 // Hook for reading user's pending payouts
 export const usePendingPayout = (circleId: bigint, userAddress: `0x${string}`) => {
     const { data: pendingAmount, isLoading, error } = useReadContract({
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'pendingPayouts',
         args: [circleId, userAddress],
     });
@@ -399,8 +399,8 @@ export const useFinalizeRound = () => {
     const finalizeRound = useCallback(async (circleId: bigint) => {
         try {
             writeContract({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'finalizeRoundIfExpired',
                 args: [circleId],
             });
@@ -445,8 +445,8 @@ export const useJoinCircle = () => {
     const joinCircle = useCallback(async (circleId: bigint) => {
         try {
             writeContract({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'joinCircle',
                 args: [circleId],
             });
@@ -517,7 +517,7 @@ export const useJoinCircleFlow = (token_address: string) => {
             },
         ] as const,
         functionName: 'allowance',
-        args: userToCheck ? [userToCheck, ROSCA_CONTRACT_ADDRESS] : ['0x0000000000000000000000000000000000000000', ROSCA_CONTRACT_ADDRESS],
+        args: userToCheck ? [userToCheck, POOLTURN_CONTRACT_ADDRESS] : ['0x0000000000000000000000000000000000000000', POOLTURN_CONTRACT_ADDRESS],
         query: { enabled: !!userToCheck }
     });
 
@@ -567,12 +567,12 @@ export const useJoinCircleFlow = (token_address: string) => {
                     userAddress,
                     currentAllowance: currentAllowanceAmount.toString(),
                     requiredAmount: requiredAmount.toString(),
-                    roscaContract: ROSCA_CONTRACT_ADDRESS
+                    poolturnContract: POOLTURN_CONTRACT_ADDRESS
                 });
 
                 writeJoin({
-                    address: ROSCA_CONTRACT_ADDRESS,
-                    abi: RoscaSecureABI,
+                    address: POOLTURN_CONTRACT_ADDRESS,
+                    abi: PoolTurnSecureABI,
                     functionName: 'joinCircle',
                     args: [circleId],
                 });
@@ -599,7 +599,7 @@ export const useJoinCircleFlow = (token_address: string) => {
                         },
                     ] as const,
                     functionName: 'approve',
-                    args: [ROSCA_CONTRACT_ADDRESS, requiredAmount],
+                    args: [POOLTURN_CONTRACT_ADDRESS, requiredAmount],
                 });
             }
         } catch (error: any) {
@@ -625,12 +625,12 @@ export const useJoinCircleFlow = (token_address: string) => {
             // Step 2: Join circle
             console.log('Attempting to join circle after approval:', {
                 circleId: currentCircleId?.toString(),
-                roscaContract: ROSCA_CONTRACT_ADDRESS
+                poolturnContract: POOLTURN_CONTRACT_ADDRESS
             });
 
             writeJoin({
-                address: ROSCA_CONTRACT_ADDRESS,
-                abi: RoscaSecureABI,
+                address: POOLTURN_CONTRACT_ADDRESS,
+                abi: PoolTurnSecureABI,
                 functionName: 'joinCircle',
                 args: [currentCircleId],
             });

@@ -5,25 +5,25 @@ export const config = {
     .NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID as string,
 } as const;
 
-// ROSCA Contract Address
-export const ROSCA_CONTRACT_ADDRESS = process.env
-  .NEXT_PUBLIC_ROSCA_CONTRACT_ADDRESS as `0x${string}`; // actual deployed address
+// PoolTurn Contract Address
+export const POOLTURN_CONTRACT_ADDRESS = process.env
+  .NEXT_PUBLIC_POOLTURN_CONTRACT_ADDRESS as `0x${string}`; // actual deployed address
 
 // Multicall3 Contract Address
 export const MULTICALL3_ADDRESS = process.env
   .NEXT_PUBLIC_MULTICALL3_ADDRESS as `0x${string}`;
 
-// Supported ERC20 tokens for contributions on Somnia Testnet
-// Note: Replace with actual Somnia Testnet token addresses when available
+// Supported ERC20 tokens for contributions on Base Mainnet
+// Note: These are mock tokens deployed specifically for this project
 export const SUPPORTED_TOKENS = {
   USDC: {
-    address: "0x6b54e6ec75eEb7c6cD1889cD3cBB858E6734471D" as `0x${string}`, // Somnia Testnet USDC (placeholder)
+    address: (process.env.NEXT_PUBLIC_USDC_ADDRESS || "0x6b54e6ec75eEb7c6cD1889cD3cBB858E6734471D") as `0x${string}`,
     decimals: 6,
     symbol: "USDC",
     name: "USDC Token",
   },
   USDT: {
-    address: "0x6c925BE58927c5eD7f907a8126BC6F733F87c3B0" as `0x${string}`, // Somnia Testnet USDC (placeholder)
+    address: (process.env.NEXT_PUBLIC_USDT_ADDRESS || "0x6c925BE58927c5eD7f907a8126BC6F733F87c3B0") as `0x${string}`,
     decimals: 6,
     symbol: "USDT",
     name: "USDT Token",
