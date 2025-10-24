@@ -13,10 +13,10 @@ pragma solidity ^0.8.19;
   - Up to MAX_MEMBERS per circle to limit gas cost when iterating members
 */
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
@@ -123,7 +123,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     }
 
     // --- Constructor ---
-    constructor() Ownable(msg.sender) {}
+    constructor() Ownable(msg.sender) { }
 
     // // --- Public / External functions ---
 
@@ -141,7 +141,11 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         uint256 collateralFactor,
         uint256 insuranceFee,
         address[] calldata initialPayoutOrder
-    ) external whenNotPaused returns (uint256) {
+    )
+        external
+        whenNotPaused
+        returns (uint256)
+    {
         require(token != address(0), "token zero");
         require(token.code.length > 0);
         require(contributionAmount > 0, "contrib zero");
@@ -468,7 +472,11 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * Strict policy: only allowed if circle is Cancelled and pendingPayouts for all recipients are zero.
      * This is a last-resort administrative escape hatch.
      */
-    function emergencyWithdraw(uint256 circleId, address to, uint256 amount)
+    function emergencyWithdraw(
+        uint256 circleId,
+        address to,
+        uint256 amount
+    )
         external
         onlyOwner
         circleExists(circleId)
@@ -573,7 +581,10 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     }
 
     // Additional utility views (member info, round info, insurance pool)
-    function getMemberInfo(uint256 circleId, address member)
+    function getMemberInfo(
+        uint256 circleId,
+        address member
+    )
         external
         view
         returns (

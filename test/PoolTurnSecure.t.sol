@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {Test} from "forge-std/Test.sol";
-import {PoolTurnSecure} from "../src/PoolTurnSecure.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import { Test } from "forge-std/Test.sol";
+import { PoolTurnSecure } from "../src/PoolTurnSecure.sol";
+import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract PoolTurnSecureTest is Test {
     PoolTurnSecure public poolturn;
@@ -914,7 +914,9 @@ contract PoolTurnSecureTest is Test {
         uint256 maxMembers,
         uint256 collateralFactor,
         uint256 insuranceFee
-    ) public {
+    )
+        public
+    {
         // Bound inputs to valid ranges
         contributionAmount = bound(contributionAmount, 1, 1000000e18);
         periodDuration = bound(periodDuration, 3 minutes, 365 days);
