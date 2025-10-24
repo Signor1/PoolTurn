@@ -1,6 +1,6 @@
 import { TrendingUp, Users, Shield, DollarSign } from "lucide-react"
 
-export function RoscaStats() {
+export function PoolTurnStats() {
   const stats = [
     {
       icon: TrendingUp,

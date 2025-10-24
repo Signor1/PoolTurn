@@ -7,7 +7,7 @@ import { http } from "viem";
 import { base } from "viem/chains";
 
 export const wagmiConfig = getDefaultConfig({
-  appName: "RoscaSecure",
+  appName: "PoolTurn",
   ssr: false,
   projectId: config.walletConnectProjectId,
   chains: [base],

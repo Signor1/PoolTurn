@@ -14,7 +14,7 @@ import { Search, Filter, Clock, Users, TrendingUp, DollarSign, Plus, Shield, Eye
 import Link from "next/link"
 import { CircleState, SUPPORTED_TOKENS } from "@/lib/config"
 import { USDCMint } from "@/components/usdc-mint"
-import { useJoinCircleFlow } from "@/hooks/useRoscaContract"
+import { useJoinCircleFlow } from "@/hooks/usePoolTurnContract"
 import { useAllCirclesMulticall } from "@/hooks/useCircleQueries"
 import { parseUnits } from "viem"
 import { useAccount } from "wagmi"

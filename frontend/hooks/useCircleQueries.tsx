@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts, useBlockNumber } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { RoscaSecureABI } from '@/abi/RoscaSecure';
-import { ROSCA_CONTRACT_ADDRESS } from '@/lib/config';
+import { PoolTurnSecureABI } from '@/abi/PoolTurnSecure';
+import { POOLTURN_CONTRACT_ADDRESS } from '@/lib/config';
 
 // Types for better type safety
 export interface CircleInfo {
@@ -49,8 +49,8 @@ export const useCircleCount = () => {
   const queryClient = useQueryClient();
 
   const { data: nextCircleId, isLoading, error } = useReadContract({
-    address: ROSCA_CONTRACT_ADDRESS,
-    abi: RoscaSecureABI,
+    address: POOLTURN_CONTRACT_ADDRESS,
+    abi: PoolTurnSecureABI,
     functionName: 'nextCircleId',
   });
 
@@ -86,8 +86,8 @@ export const useCircleInfo = (circleId: bigint) => {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useReadContract({
-    address: ROSCA_CONTRACT_ADDRESS,
-    abi: RoscaSecureABI,
+    address: POOLTURN_CONTRACT_ADDRESS,
+    abi: PoolTurnSecureABI,
     functionName: 'getCircleInfo',
     args: [circleId],
   });
@@ -127,8 +127,8 @@ export const useCircleDetails = (circleId: bigint) => {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useReadContract({
-    address: ROSCA_CONTRACT_ADDRESS,
-    abi: RoscaSecureABI,
+    address: POOLTURN_CONTRACT_ADDRESS,
+    abi: PoolTurnSecureABI,
     functionName: 'getCircleDetails',
     args: [circleId],
   });
@@ -159,8 +159,8 @@ export const useCircleMembers = (circleId: bigint) => {
   const queryClient = useQueryClient();
 
   const { data: members, isLoading, error } = useReadContract({
-    address: ROSCA_CONTRACT_ADDRESS,
-    abi: RoscaSecureABI,
+    address: POOLTURN_CONTRACT_ADDRESS,
+    abi: PoolTurnSecureABI,
     functionName: 'getMembers',
     args: [circleId],
   });
@@ -193,22 +193,22 @@ export const useAllCirclesMulticall = () => {
     return circleIds.flatMap(id => [
       // Contract 1: getCircleInfo
       {
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getCircleInfo' as const,
         args: [BigInt(id)],
       },
       // Contract 2: getCircleDetails
       {
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getCircleDetails' as const,
         args: [BigInt(id)],
       },
       // Contract 3: getMembers
       {
-        address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        address: POOLTURN_CONTRACT_ADDRESS,
+        abi: PoolTurnSecureABI,
         functionName: 'getMembers' as const,
         args: [BigInt(id)],
       },

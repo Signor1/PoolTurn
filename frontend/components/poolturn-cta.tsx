@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Sparkles, Users } from "lucide-react"
 
-export function RoscaCTA() {
+export function PoolTurnCTA() {
   return (
     <section className="py-20 px-6">
       <div className="max-w-4xl mx-auto text-center">

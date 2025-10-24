@@ -2,11 +2,11 @@
 pragma solidity ^0.8.19;
 
 import {Test} from "forge-std/Test.sol";
-import {RoscaSecure} from "../src/Rosca.sol";
+import {PoolTurnSecure} from "../src/PoolTurnSecure.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
-contract RoscaSecureTest is Test {
-    RoscaSecure public rosca;
+contract PoolTurnSecureTest is Test {
+    PoolTurnSecure public poolturn;
     ERC20Mock public token;
 
     address public owner = address(this);
@@ -37,7 +37,7 @@ contract RoscaSecureTest is Test {
     event MemberBanned(uint256 indexed circleId, address indexed member);
 
     function setUp() public {
-        rosca = new RoscaSecure();
+        poolturn = new PoolTurnSecure();
         token = new ERC20Mock();
 
         // Fund test accounts
@@ -57,7 +57,7 @@ contract RoscaSecureTest is Test {
     // Helper function to create a basic circle
     function createBasicCircle() internal returns (uint256 circleId) {
         address[] memory emptyOrder;
-        circleId = rosca.createCircle(
+        circleId = poolturn.createCircle(
             "first_circle",
             "description of the first circle",
             address(token),
@@ -72,19 +72,19 @@ contract RoscaSecureTest is Test {
 
     // Helper function to join a circle with proper approvals
     function joinCircleWithApproval(uint256 circleId, address member) internal {
-        (,,,,, uint256 collateralFactor, uint256 insuranceFee,,,,) = rosca.getCircleInfo(circleId);
+        (,,,,, uint256 collateralFactor, uint256 insuranceFee,,,,) = poolturn.getCircleInfo(circleId);
         uint256 totalLock = CONTRIBUTION_AMOUNT * collateralFactor + insuranceFee;
         vm.startPrank(member);
-        token.approve(address(rosca), totalLock);
-        rosca.joinCircle(circleId);
+        token.approve(address(poolturn), totalLock);
+        poolturn.joinCircle(circleId);
         vm.stopPrank();
     }
 
     // Helper function to make contribution with proper approval
     function contributeWithApproval(uint256 circleId, address member) internal {
         vm.startPrank(member);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT);
-        rosca.contribute(circleId);
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT);
+        poolturn.contribute(circleId);
         vm.stopPrank();
     }
 
@@ -98,7 +98,7 @@ contract RoscaSecureTest is Test {
         vm.expectEmit(true, true, false, true);
         emit CircleCreated(1, owner);
 
-        uint256 circleId = rosca.createCircle(
+        uint256 circleId = poolturn.createCircle(
             "first test",
             "description of the first test",
             address(token),
@@ -124,8 +124,8 @@ contract RoscaSecureTest is Test {
             uint256 startTimestamp,
             uint256 currentRound,
             uint256 roundStart,
-            RoscaSecure.CircleState state
-        ) = rosca.getCircleInfo(circleId);
+            PoolTurnSecure.CircleState state
+        ) = poolturn.getCircleInfo(circleId);
 
         assertEq(creator, owner);
         assertEq(tokenAddr, address(token));
@@ -137,9 +137,9 @@ contract RoscaSecureTest is Test {
         assertEq(startTimestamp, 0); // Not started yet
         assertEq(currentRound, 0); // Not started yet
         assertEq(roundStart, 0); // Not started yet
-        assertTrue(state == RoscaSecure.CircleState.Open);
+        assertTrue(state == PoolTurnSecure.CircleState.Open);
 
-        (string memory name, string memory desc) = rosca.getCircleDetails(circleId);
+        (string memory name, string memory desc) = poolturn.getCircleDetails(circleId);
 
         assertEq(name, "first test");
         assertEq(desc, "description of the first test");
@@ -152,7 +152,7 @@ contract RoscaSecureTest is Test {
         payoutOrder[2] = carol;
         payoutOrder[3] = dave;
 
-        uint256 circleId = rosca.createCircle(
+        uint256 circleId = poolturn.createCircle(
             "second test",
             "other desc",
             address(token),
@@ -164,14 +164,14 @@ contract RoscaSecureTest is Test {
             payoutOrder
         );
 
-        address[] memory storedOrder = rosca.getPayoutOrder(circleId);
+        address[] memory storedOrder = poolturn.getPayoutOrder(circleId);
         assertEq(storedOrder.length, 4);
         assertEq(storedOrder[0], alice);
         assertEq(storedOrder[1], bob);
         assertEq(storedOrder[2], carol);
         assertEq(storedOrder[3], dave);
 
-        (string memory name, string memory desc) = rosca.getCircleDetails(circleId);
+        (string memory name, string memory desc) = poolturn.getCircleDetails(circleId);
 
         assertEq(name, "second test");
         assertEq(desc, "other desc");
@@ -181,7 +181,7 @@ contract RoscaSecureTest is Test {
         address[] memory emptyOrder;
 
         vm.expectRevert("token zero");
-        rosca.createCircle(
+        poolturn.createCircle(
             "",
             "",
             address(0),
@@ -198,7 +198,7 @@ contract RoscaSecureTest is Test {
         address[] memory emptyOrder;
 
         vm.expectRevert("contrib zero");
-        rosca.createCircle(
+        poolturn.createCircle(
             "", "", address(token), 0, PERIOD_DURATION, MAX_MEMBERS, COLLATERAL_FACTOR, INSURANCE_FEE, emptyOrder
         );
     }
@@ -207,7 +207,7 @@ contract RoscaSecureTest is Test {
         address[] memory emptyOrder;
 
         vm.expectRevert("period too short");
-        rosca.createCircle(
+        poolturn.createCircle(
             "",
             "",
             address(token),
@@ -225,7 +225,7 @@ contract RoscaSecureTest is Test {
 
         // Too few members
         vm.expectRevert("invalid members");
-        rosca.createCircle(
+        poolturn.createCircle(
             "",
             "",
             address(token),
@@ -239,7 +239,7 @@ contract RoscaSecureTest is Test {
 
         // Too many members
         vm.expectRevert("invalid members");
-        rosca.createCircle(
+        poolturn.createCircle(
             "",
             "",
             address(token),
@@ -256,7 +256,7 @@ contract RoscaSecureTest is Test {
         address[] memory emptyOrder;
 
         vm.expectRevert("collateralFactor < 1");
-        rosca.createCircle(
+        poolturn.createCircle(
             "",
             "",
             address(token),
@@ -279,12 +279,12 @@ contract RoscaSecureTest is Test {
         uint256 totalLock = CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR + INSURANCE_FEE;
 
         vm.startPrank(alice);
-        token.approve(address(rosca), totalLock);
+        token.approve(address(poolturn), totalLock);
 
         vm.expectEmit(true, true, false, true);
         emit MemberJoined(circleId, alice, CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR, INSURANCE_FEE);
 
-        rosca.joinCircle(circleId);
+        poolturn.joinCircle(circleId);
         vm.stopPrank();
 
         // Verify member info
@@ -295,7 +295,7 @@ contract RoscaSecureTest is Test {
             uint256 defaults,
             bool banned,
             bool withdrawnCollateral
-        ) = rosca.getMemberInfo(circleId, alice);
+        ) = poolturn.getMemberInfo(circleId, alice);
 
         assertTrue(exists);
         assertEq(collateralLocked, CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR);
@@ -305,12 +305,12 @@ contract RoscaSecureTest is Test {
         assertFalse(withdrawnCollateral);
 
         // Verify members list
-        address[] memory members = rosca.getMembers(circleId);
+        address[] memory members = poolturn.getMembers(circleId);
         assertEq(members.length, 1);
         assertEq(members[0], alice);
 
         // Verify insurance pool
-        uint256 insurancePool = rosca.getInsurancePool(circleId);
+        uint256 insurancePool = poolturn.getInsurancePool(circleId);
         assertEq(insurancePool, INSURANCE_FEE);
     }
 
@@ -326,24 +326,24 @@ contract RoscaSecureTest is Test {
         uint256 totalLock = CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR + INSURANCE_FEE;
 
         vm.startPrank(dave);
-        token.approve(address(rosca), totalLock);
+        token.approve(address(poolturn), totalLock);
 
         vm.expectEmit(true, true, false, true);
         emit RoundStarted(circleId, 1, block.timestamp);
 
-        rosca.joinCircle(circleId);
+        poolturn.joinCircle(circleId);
         vm.stopPrank();
 
         // Verify circle is now active
-        (,,,,,,, uint256 startTimestamp, uint256 currentRound,, RoscaSecure.CircleState state) =
-            rosca.getCircleInfo(circleId);
+        (,,,,,,, uint256 startTimestamp, uint256 currentRound,, PoolTurnSecure.CircleState state) =
+            poolturn.getCircleInfo(circleId);
 
-        assertTrue(state == RoscaSecure.CircleState.Active);
+        assertTrue(state == PoolTurnSecure.CircleState.Active);
         assertEq(startTimestamp, block.timestamp);
         assertEq(currentRound, 1);
 
         // Verify payout order was set deterministically
-        address[] memory payoutOrder = rosca.getPayoutOrder(circleId);
+        address[] memory payoutOrder = poolturn.getPayoutOrder(circleId);
         assertEq(payoutOrder.length, 4);
         assertEq(payoutOrder[0], alice);
         assertEq(payoutOrder[1], bob);
@@ -362,9 +362,9 @@ contract RoscaSecureTest is Test {
 
         // Try to join when active
         vm.startPrank(eve);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR + INSURANCE_FEE);
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR + INSURANCE_FEE);
         vm.expectRevert("not open");
-        rosca.joinCircle(circleId);
+        poolturn.joinCircle(circleId);
         vm.stopPrank();
     }
 
@@ -378,8 +378,8 @@ contract RoscaSecureTest is Test {
         joinCircleWithApproval(circleId, dave); // This should activate, not fail
 
         // Verify circle is now active (not full rejection)
-        (,,,,,,,,,, RoscaSecure.CircleState state) = rosca.getCircleInfo(circleId);
-        assertTrue(state == RoscaSecure.CircleState.Active);
+        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnSecure.CircleState.Active);
     }
 
     function testJoinCircleFailsWhenAlreadyJoined() public {
@@ -389,9 +389,9 @@ contract RoscaSecureTest is Test {
 
         // Try to join again
         vm.startPrank(alice);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR + INSURANCE_FEE);
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR + INSURANCE_FEE);
         vm.expectRevert("already joined");
-        rosca.joinCircle(circleId);
+        poolturn.joinCircle(circleId);
         vm.stopPrank();
     }
 
@@ -399,9 +399,9 @@ contract RoscaSecureTest is Test {
         uint256 circleId = createBasicCircle();
 
         vm.startPrank(alice);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT); // Not enough (missing collateral + insurance)
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT); // Not enough (missing collateral + insurance)
         vm.expectRevert();
-        rosca.joinCircle(circleId);
+        poolturn.joinCircle(circleId);
         vm.stopPrank();
     }
 
@@ -420,16 +420,16 @@ contract RoscaSecureTest is Test {
 
         // First member contributes
         vm.startPrank(alice);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT);
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT);
 
         vm.expectEmit(true, true, true, true);
         emit ContributionMade(circleId, 1, alice, CONTRIBUTION_AMOUNT);
 
-        rosca.contribute(circleId);
+        poolturn.contribute(circleId);
         vm.stopPrank();
 
         // Verify contribution was recorded
-        bool deposited = rosca.getRoundDeposited(circleId, 1, alice);
+        bool deposited = poolturn.getRoundDeposited(circleId, 1, alice);
         assertTrue(deposited);
     }
 
@@ -449,20 +449,20 @@ contract RoscaSecureTest is Test {
 
         // Last contribution should trigger winner selection
         vm.startPrank(dave);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT);
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT);
 
         vm.expectEmit(true, true, true, true);
         emit WinnerSelected(circleId, 1, alice, CONTRIBUTION_AMOUNT * 4); // Alice is first in payout order
 
-        rosca.contribute(circleId);
+        poolturn.contribute(circleId);
         vm.stopPrank();
 
         // Verify round advanced
-        (,,,,,,,, uint256 currentRound,,) = rosca.getCircleInfo(circleId);
+        (,,,,,,,, uint256 currentRound,,) = poolturn.getCircleInfo(circleId);
         assertEq(currentRound, 2);
 
         // Verify pending payout
-        uint256 pendingPayout = rosca.pendingPayouts(circleId, alice);
+        uint256 pendingPayout = poolturn.pendingPayouts(circleId, alice);
         assertEq(pendingPayout, CONTRIBUTION_AMOUNT * 4);
     }
 
@@ -487,13 +487,13 @@ contract RoscaSecureTest is Test {
         emit PayoutClaimed(circleId, alice, CONTRIBUTION_AMOUNT * 4);
 
         vm.prank(alice);
-        rosca.claimPayout(circleId);
+        poolturn.claimPayout(circleId);
 
         uint256 aliceBalanceAfter = token.balanceOf(alice);
         assertEq(aliceBalanceAfter - aliceBalanceBefore, CONTRIBUTION_AMOUNT * 4);
 
         // Verify pending payout was cleared
-        uint256 pendingPayout = rosca.pendingPayouts(circleId, alice);
+        uint256 pendingPayout = poolturn.pendingPayouts(circleId, alice);
         assertEq(pendingPayout, 0);
     }
 
@@ -507,9 +507,9 @@ contract RoscaSecureTest is Test {
         joinCircleWithApproval(circleId, dave);
 
         vm.startPrank(eve);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT);
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT);
         vm.expectRevert("not a member");
-        rosca.contribute(circleId);
+        poolturn.contribute(circleId);
         vm.stopPrank();
     }
 
@@ -527,9 +527,9 @@ contract RoscaSecureTest is Test {
 
         // Try to contribute again
         vm.startPrank(alice);
-        token.approve(address(rosca), CONTRIBUTION_AMOUNT);
+        token.approve(address(poolturn), CONTRIBUTION_AMOUNT);
         vm.expectRevert("already paid");
-        rosca.contribute(circleId);
+        poolturn.contribute(circleId);
         vm.stopPrank();
     }
 
@@ -561,15 +561,15 @@ contract RoscaSecureTest is Test {
         vm.expectEmit(true, true, true, true);
         emit WinnerSelected(circleId, 1, alice, CONTRIBUTION_AMOUNT * 4); // 3 contributions + 1 slashed collateral
 
-        rosca.finalizeRoundIfExpired(circleId);
+        poolturn.finalizeRoundIfExpired(circleId);
 
         // Verify default was recorded
-        (, uint256 collateralLocked,, uint256 defaults,,) = rosca.getMemberInfo(circleId, dave);
+        (, uint256 collateralLocked,, uint256 defaults,,) = poolturn.getMemberInfo(circleId, dave);
         assertEq(defaults, 1);
         assertEq(collateralLocked, CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR - CONTRIBUTION_AMOUNT); // Collateral was slashed
 
         // Verify payout
-        uint256 pendingPayout = rosca.pendingPayouts(circleId, alice);
+        uint256 pendingPayout = poolturn.pendingPayouts(circleId, alice);
         assertEq(pendingPayout, CONTRIBUTION_AMOUNT * 4);
     }
 
@@ -597,7 +597,7 @@ contract RoscaSecureTest is Test {
                 emit MemberBanned(circleId, dave);
             }
 
-            rosca.finalizeRoundIfExpired(circleId);
+            poolturn.finalizeRoundIfExpired(circleId);
 
             // Skip claiming payouts to continue to next round
             if (round < 3) {
@@ -606,7 +606,7 @@ contract RoscaSecureTest is Test {
         }
 
         // Verify dave is banned
-        (,,, uint256 defaults, bool banned,) = rosca.getMemberInfo(circleId, dave);
+        (,,, uint256 defaults, bool banned,) = poolturn.getMemberInfo(circleId, dave);
         assertEq(defaults, 3);
         assertTrue(banned);
     }
@@ -632,14 +632,14 @@ contract RoscaSecureTest is Test {
             contributeWithApproval(circleId, dave);
 
             // Claim payouts to avoid token balance issues
-            address winner = rosca.getPayoutOrder(circleId)[round - 1];
+            address winner = poolturn.getPayoutOrder(circleId)[round - 1];
             vm.prank(winner);
-            rosca.claimPayout(circleId);
+            poolturn.claimPayout(circleId);
         }
 
         // Verify circle is completed
-        (,,,,,,,,,, RoscaSecure.CircleState state) = rosca.getCircleInfo(circleId);
-        assertTrue(state == RoscaSecure.CircleState.Completed);
+        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnSecure.CircleState.Completed);
 
         // Withdraw collateral
         uint256 aliceBalanceBefore = token.balanceOf(alice);
@@ -648,13 +648,13 @@ contract RoscaSecureTest is Test {
         emit CollateralWithdrawn(circleId, alice, CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR);
 
         vm.prank(alice);
-        rosca.withdrawCollateral(circleId);
+        poolturn.withdrawCollateral(circleId);
 
         uint256 aliceBalanceAfter = token.balanceOf(alice);
         assertEq(aliceBalanceAfter - aliceBalanceBefore, CONTRIBUTION_AMOUNT * COLLATERAL_FACTOR);
 
         // Verify collateral was marked as withdrawn
-        (, uint256 collateralLocked,,,, bool withdrawnCollateral) = rosca.getMemberInfo(circleId, alice);
+        (, uint256 collateralLocked,,,, bool withdrawnCollateral) = poolturn.getMemberInfo(circleId, alice);
         assertEq(collateralLocked, 0);
         assertTrue(withdrawnCollateral);
     }
@@ -671,7 +671,7 @@ contract RoscaSecureTest is Test {
         // Try to withdraw collateral while circle is still active
         vm.prank(alice);
         vm.expectRevert("circle not finished");
-        rosca.withdrawCollateral(circleId);
+        poolturn.withdrawCollateral(circleId);
     }
 
     function testWithdrawCollateralFailsWhenAlreadyWithdrawn() public {
@@ -690,19 +690,19 @@ contract RoscaSecureTest is Test {
             contributeWithApproval(circleId, carol);
             contributeWithApproval(circleId, dave);
 
-            address winner = rosca.getPayoutOrder(circleId)[round - 1];
+            address winner = poolturn.getPayoutOrder(circleId)[round - 1];
             vm.prank(winner);
-            rosca.claimPayout(circleId);
+            poolturn.claimPayout(circleId);
         }
 
         // Withdraw once
         vm.prank(alice);
-        rosca.withdrawCollateral(circleId);
+        poolturn.withdrawCollateral(circleId);
 
         // Try to withdraw again
         vm.prank(alice);
         vm.expectRevert("already withdrawn");
-        rosca.withdrawCollateral(circleId);
+        poolturn.withdrawCollateral(circleId);
     }
 
     // ================================
@@ -713,11 +713,11 @@ contract RoscaSecureTest is Test {
         address[] memory emptyOrder;
 
         // Pause contract
-        rosca.pause();
+        poolturn.pause();
 
         // Should fail to create circle when paused
         vm.expectRevert();
-        rosca.createCircle(
+        poolturn.createCircle(
             "",
             "",
             address(token),
@@ -730,10 +730,10 @@ contract RoscaSecureTest is Test {
         );
 
         // Unpause
-        rosca.unpause();
+        poolturn.unpause();
 
         // Should work again
-        uint256 circleId = rosca.createCircle(
+        uint256 circleId = poolturn.createCircle(
             "",
             "",
             address(token),
@@ -756,15 +756,15 @@ contract RoscaSecureTest is Test {
         joinCircleWithApproval(circleId, bob);
 
         // Cancel circle (only owner can do this)
-        rosca.cancelCircle(circleId);
+        poolturn.cancelCircle(circleId);
 
         // Verify circle is cancelled
-        (,,,,,,,,,, RoscaSecure.CircleState state) = rosca.getCircleInfo(circleId);
-        assertTrue(state == RoscaSecure.CircleState.Cancelled);
+        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnSecure.CircleState.Cancelled);
 
         // Verify members got refunds (collateral + insurance should be returned)
         // Note: This is hard to verify without checking balances, but we trust the implementation
-        (, uint256 collateralLocked, uint256 insuranceContributed,,,) = rosca.getMemberInfo(circleId, alice);
+        (, uint256 collateralLocked, uint256 insuranceContributed,,,) = poolturn.getMemberInfo(circleId, alice);
         assertEq(collateralLocked, 0);
         assertEq(insuranceContributed, 0);
     }
@@ -774,7 +774,7 @@ contract RoscaSecureTest is Test {
 
         vm.prank(alice);
         vm.expectRevert();
-        rosca.cancelCircle(circleId);
+        poolturn.cancelCircle(circleId);
     }
 
     function testCancelCircleFailsWhenActive() public {
@@ -787,14 +787,14 @@ contract RoscaSecureTest is Test {
         joinCircleWithApproval(circleId, dave);
 
         vm.expectRevert("cannot cancel active/completed");
-        rosca.cancelCircle(circleId);
+        poolturn.cancelCircle(circleId);
     }
 
     function testEmergencyWithdrawFailsWhenNotCancelled() public {
         uint256 circleId = createBasicCircle();
 
         vm.expectRevert("circle not cancelled");
-        rosca.emergencyWithdraw(circleId, owner, 100e18);
+        poolturn.emergencyWithdraw(circleId, owner, 100e18);
     }
 
     // ================================
@@ -818,9 +818,9 @@ contract RoscaSecureTest is Test {
             contributeWithApproval(circleId, dave);
 
             // Claim payout to clear balances
-            address winner = rosca.getPayoutOrder(circleId)[round - 1];
+            address winner = poolturn.getPayoutOrder(circleId)[round - 1];
             vm.prank(winner);
-            rosca.claimPayout(circleId);
+            poolturn.claimPayout(circleId);
         }
 
         // Complete final round (round 4) - this should complete the circle
@@ -830,8 +830,8 @@ contract RoscaSecureTest is Test {
         contributeWithApproval(circleId, dave); // This should trigger completion
 
         // Verify circle is completed
-        (,,,,,,,,,, RoscaSecure.CircleState state) = rosca.getCircleInfo(circleId);
-        assertTrue(state == RoscaSecure.CircleState.Completed);
+        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnSecure.CircleState.Completed);
     }
 
     function testInsurancePoolUsedWhenNeeded() public {
@@ -850,25 +850,25 @@ contract RoscaSecureTest is Test {
         vm.warp(block.timestamp + PERIOD_DURATION + 1);
 
         // Get insurance pool before finalization
-        uint256 insurancePoolBefore = rosca.getInsurancePool(circleId);
+        uint256 insurancePoolBefore = poolturn.getInsurancePool(circleId);
         assertEq(insurancePoolBefore, INSURANCE_FEE * 4); // 4 members contributed insurance
 
-        rosca.finalizeRoundIfExpired(circleId);
+        poolturn.finalizeRoundIfExpired(circleId);
 
         // In this case, insurance pool wasn't needed because slashed collateral was enough
         // 1 contribution + 3 slashed collateral = 4 * CONTRIBUTION_AMOUNT (full pot)
-        uint256 insurancePoolAfter = rosca.getInsurancePool(circleId);
+        uint256 insurancePoolAfter = poolturn.getInsurancePool(circleId);
         assertEq(insurancePoolAfter, insurancePoolBefore); // No insurance used
 
         // Winner should get full expected pot (contributions + slashed collateral)
-        uint256 pendingPayout = rosca.pendingPayouts(circleId, alice);
+        uint256 pendingPayout = poolturn.pendingPayouts(circleId, alice);
         assertEq(pendingPayout, CONTRIBUTION_AMOUNT * 4); // Full pot despite defaults
     }
 
     function testInsurancePoolActuallyUsed() public {
         // Create a circle with low collateral factor so insurance is needed
         address[] memory emptyOrder;
-        uint256 circleId = rosca.createCircle(
+        uint256 circleId = poolturn.createCircle(
             "",
             "",
             address(token),
@@ -890,10 +890,10 @@ contract RoscaSecureTest is Test {
         // Fast forward and finalize
         vm.warp(block.timestamp + PERIOD_DURATION + 1);
 
-        uint256 insurancePoolBefore = rosca.getInsurancePool(circleId);
+        uint256 insurancePoolBefore = poolturn.getInsurancePool(circleId);
         assertEq(insurancePoolBefore, INSURANCE_FEE * 4); // 4 members contributed insurance
 
-        rosca.finalizeRoundIfExpired(circleId);
+        poolturn.finalizeRoundIfExpired(circleId);
 
         // Insurance pool should be used because slashed collateral (4 * CONTRIBUTION_AMOUNT)
         // is not enough to make full pot (4 * CONTRIBUTION_AMOUNT needed)
@@ -901,10 +901,10 @@ contract RoscaSecureTest is Test {
 
         // The pot should be: 0 contributions + 4 slashed collateral = 4 * CONTRIBUTION_AMOUNT
         // Which is actually the full expected pot, so insurance won't be used
-        uint256 insurancePoolAfter = rosca.getInsurancePool(circleId);
+        uint256 insurancePoolAfter = poolturn.getInsurancePool(circleId);
         assertEq(insurancePoolAfter, insurancePoolBefore); // No insurance used in this case either
 
-        uint256 pendingPayout = rosca.pendingPayouts(circleId, alice);
+        uint256 pendingPayout = poolturn.pendingPayouts(circleId, alice);
         assertEq(pendingPayout, CONTRIBUTION_AMOUNT * 4);
     }
 
@@ -924,7 +924,7 @@ contract RoscaSecureTest is Test {
 
         address[] memory emptyOrder;
 
-        uint256 circleId = rosca.createCircle(
+        uint256 circleId = poolturn.createCircle(
             "",
             "",
             address(token),
@@ -948,14 +948,14 @@ contract RoscaSecureTest is Test {
             ,
             ,
             ,
-            RoscaSecure.CircleState state
-        ) = rosca.getCircleInfo(circleId);
+            PoolTurnSecure.CircleState state
+        ) = poolturn.getCircleInfo(circleId);
 
         assertEq(storedContribution, contributionAmount);
         assertEq(storedPeriod, periodDuration);
         assertEq(storedMaxMembers, maxMembers);
         assertEq(storedCollateralFactor, collateralFactor);
         assertEq(storedInsuranceFee, insuranceFee);
-        assertTrue(state == RoscaSecure.CircleState.Open);
+        assertTrue(state == PoolTurnSecure.CircleState.Open);
     }
 }

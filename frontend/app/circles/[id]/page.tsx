@@ -2,14 +2,14 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useAccount, useReadContract } from 'wagmi';
-import { RoscaSecureABI } from '@/abi/RoscaSecure';
+import { PoolTurnSecureABI } from '@/abi/PoolTurnSecure';
 import { ROSCA_CONTRACT_ADDRESS } from '@/lib/config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCircleData, useMemberData, usePendingPayout, useJoinCircleFlow, useContributeFlow, useClaimPayout, useFinalizeRound, useWithdrawCollateral } from '@/hooks/useRoscaContract';
+import { useCircleData, useMemberData, usePendingPayout, useJoinCircleFlow, useContributeFlow, useClaimPayout, useFinalizeRound, useWithdrawCollateral } from '@/hooks/usePoolTurnContract';
 import { useCircleInfo, useCircleDetails, useCircleMembers } from '@/hooks/useCircleQueries';
 import { formatUnits } from 'viem';
 import { ArrowLeft, Users, AlertCircle, Clock, CheckCircle, XCircle, Timer, Award, TrendingUp } from 'lucide-react';
@@ -99,7 +99,7 @@ export default function CircleDetailsPage() {
     // Check if user contributed in current round (only for active circles)
     const { data: hasContributedThisRound } = useReadContract({
         address: ROSCA_CONTRACT_ADDRESS,
-        abi: RoscaSecureABI,
+        abi: PoolTurnSecureABI,
         functionName: 'getRoundDeposited',
         args: [circleId, BigInt(currentRound), address || '0x0'],
         query: {

@@ -2,17 +2,17 @@
 pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
-import {RoscaSecure} from "../src/Rosca.sol";
+import {PoolTurnSecure} from "../src/PoolTurnSecure.sol";
 
-contract RoscaSecureScript is Script {
-    RoscaSecure public rosca;
+contract PoolTurnSecureScript is Script {
+    PoolTurnSecure public poolturn;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        rosca = new RoscaSecure();
+        poolturn = new PoolTurnSecure();
 
         vm.stopBroadcast();
     }
