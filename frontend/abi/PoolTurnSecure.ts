@@ -33,8 +33,8 @@ export const PoolTurnSecureABI = [
     name: "circleDetails",
     inputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     outputs: [
-      { name: "name", type: "bytes", internalType: "bytes" },
-      { name: "desc", type: "bytes", internalType: "bytes" },
+      { name: "name", type: "string", internalType: "string" },
+      { name: "desc", type: "string", internalType: "string" },
     ],
     stateMutability: "view",
   },
@@ -56,7 +56,7 @@ export const PoolTurnSecureABI = [
       {
         name: "state",
         type: "uint8",
-        internalType: "enum RoscaSecure.CircleState",
+        internalType: "enum PoolTurnSecure.CircleState",
       },
       { name: "rotationLocked", type: "bool", internalType: "bool" },
     ],
@@ -143,7 +143,49 @@ export const PoolTurnSecureABI = [
       {
         name: "state",
         type: "uint8",
-        internalType: "enum RoscaSecure.CircleState",
+        internalType: "enum PoolTurnSecure.CircleState",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getCircles",
+    inputs: [
+      { name: "offset", type: "uint256", internalType: "uint256" },
+      { name: "limit", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [
+      {
+        name: "circles_",
+        type: "tuple[]",
+        internalType: "struct PoolTurnSecure.Circle[]",
+        components: [
+          { name: "creator", type: "address", internalType: "address" },
+          { name: "token", type: "address", internalType: "contract IERC20" },
+          {
+            name: "contributionAmount",
+            type: "uint256",
+            internalType: "uint256",
+          },
+          { name: "periodDuration", type: "uint256", internalType: "uint256" },
+          { name: "maxMembers", type: "uint256", internalType: "uint256" },
+          {
+            name: "collateralFactor",
+            type: "uint256",
+            internalType: "uint256",
+          },
+          { name: "insuranceFee", type: "uint256", internalType: "uint256" },
+          { name: "startTimestamp", type: "uint256", internalType: "uint256" },
+          { name: "currentRound", type: "uint256", internalType: "uint256" },
+          { name: "roundStart", type: "uint256", internalType: "uint256" },
+          {
+            name: "state",
+            type: "uint8",
+            internalType: "enum PoolTurnSecure.CircleState",
+          },
+          { name: "rotationLocked", type: "bool", internalType: "bool" },
+        ],
       },
     ],
     stateMutability: "view",
@@ -203,6 +245,27 @@ export const PoolTurnSecureABI = [
   },
   {
     type: "function",
+    name: "getTotalCircles",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "globalDefaults",
+    inputs: [{ name: "", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "globallyBanned",
+    inputs: [{ name: "", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "insurancePool",
     inputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
@@ -224,15 +287,15 @@ export const PoolTurnSecureABI = [
     ],
     outputs: [
       { name: "exists", type: "bool", internalType: "bool" },
+      { name: "banned", type: "bool", internalType: "bool" },
+      { name: "withdrawnCollateral", type: "bool", internalType: "bool" },
+      { name: "defaults", type: "uint8", internalType: "uint8" },
       { name: "collateralLocked", type: "uint256", internalType: "uint256" },
       {
         name: "insuranceContributed",
         type: "uint256",
         internalType: "uint256",
       },
-      { name: "defaults", type: "uint256", internalType: "uint256" },
-      { name: "banned", type: "bool", internalType: "bool" },
-      { name: "withdrawnCollateral", type: "bool", internalType: "bool" },
     ],
     stateMutability: "view",
   },
@@ -301,6 +364,19 @@ export const PoolTurnSecureABI = [
     inputs: [{ name: "circleId", type: "uint256", internalType: "uint256" }],
     outputs: [],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "event",
+    name: "CircleCancelled",
+    inputs: [
+      {
+        name: "circleId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
   },
   {
     type: "event",
@@ -462,6 +538,25 @@ export const PoolTurnSecureABI = [
   },
   {
     type: "event",
+    name: "MemberGloballyBanned",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "totalDefaults",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "MemberJoined",
     inputs: [
       {
@@ -544,6 +639,25 @@ export const PoolTurnSecureABI = [
         type: "uint256",
         indexed: false,
         internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "PayoutOrderSet",
+    inputs: [
+      {
+        name: "circleId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "payoutOrder",
+        type: "address[]",
+        indexed: false,
+        internalType: "address[]",
       },
     ],
     anonymous: false,

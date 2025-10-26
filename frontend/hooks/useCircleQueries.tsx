@@ -47,10 +47,10 @@ export const useCircleCount = () => {
   const queryClient = useQueryClient();
   const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data: nextCircleId, isLoading, error, queryKey } = useReadContract({
+  const { data: totalCircles, isLoading, error, queryKey } = useReadContract({
     address: POOLTURN_CONTRACT_ADDRESS,
     abi: PoolTurnSecureABI,
-    functionName: 'nextCircleId',
+    functionName: 'getTotalCircles',
     query: {
       refetchInterval: 5000, // Refetch every 5 seconds
     }
@@ -64,7 +64,7 @@ export const useCircleCount = () => {
   }, [blockNumber, queryClient, queryKey]);
 
   return {
-    totalCircles: nextCircleId ? Number(nextCircleId) - 1 : 0,
+    totalCircles: totalCircles ? Number(totalCircles) : 0,
     isLoading,
     error,
   };

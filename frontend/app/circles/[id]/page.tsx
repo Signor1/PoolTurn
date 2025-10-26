@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useAccount, useReadContract } from 'wagmi';
 import { PoolTurnSecureABI } from '@/abi/PoolTurnSecure';
-import { POOLTURN_CONTRACT_ADDRESS } from '@/lib/config';
+import { POOLTURN_CONTRACT_ADDRESS, SUPPORTED_TOKENS } from '@/lib/config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ export default function CircleDetailsPage() {
     const { pendingAmount, isLoading: isLoadingPayout } = usePendingPayout(circleId, address || '0x0');
 
     // Contract interaction hooks
-    const { startJoinFlow, isPending: isJoining, currentStep } = useJoinCircleFlow();
+    const { startJoinFlow, isPending: isJoining, currentStep } = useJoinCircleFlow(circleInfo?.tokenAddr as string || SUPPORTED_TOKENS.USDC.address);
     const {
         startContributeFlow,
         proceedToContribute,
@@ -98,7 +98,7 @@ export default function CircleDetailsPage() {
 
     // Check if user contributed in current round (only for active circles)
     const { data: hasContributedThisRound } = useReadContract({
-        address: ROSCA_CONTRACT_ADDRESS,
+        address: POOLTURN_CONTRACT_ADDRESS,
         abi: PoolTurnSecureABI,
         functionName: 'getRoundDeposited',
         args: [circleId, BigInt(currentRound), address || '0x0'],
