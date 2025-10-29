@@ -63,7 +63,6 @@ export function USDCMint() {
         args: [address, amount],
       });
     } catch (error) {
-      console.error("Mint error:", error);
       toast.error("Failed to mint USDC");
     }
   };
@@ -81,7 +80,6 @@ export function USDCMint() {
   // Handle transaction errors
   useEffect(() => {
     if (txError && hash) {
-      console.error('Mint transaction error:', txError);
       toast.error("Mint transaction failed", {
         id: `mint-error-${hash}`,
         position: "top-right",

@@ -938,7 +938,8 @@ contract PoolTurnSecureTest is Test {
         periodDuration = bound(periodDuration, 3 minutes, 365 days);
         maxMembers = bound(maxMembers, 2, 100);
         collateralFactor = bound(collateralFactor, 1, 10);
-        insuranceFee = bound(insuranceFee, 0, 1000e18);
+        // Insurance fee must not exceed contribution amount (reasonable business logic)
+        insuranceFee = bound(insuranceFee, 0, contributionAmount);
 
         address[] memory emptyOrder;
 
