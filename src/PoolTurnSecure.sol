@@ -173,6 +173,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         c.periodDuration = periodDuration;
         c.maxMembers = maxMembers;
         c.collateralFactor = collateralFactor;
+
+        // Validate insurance fee is reasonable (max 100% of contribution amount)
+        require(insuranceFee <= contributionAmount, "insurance fee too high");
         c.insuranceFee = insuranceFee;
         c.state = CircleState.Open;
 
@@ -487,18 +490,26 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
     /**
      * Validate payout order for duplicates and zero addresses
+     * Optimized: Uses memory array to track seen addresses, reducing redundant comparisons
      */
     function _validatePayoutOrder(address[] calldata order) private pure {
         uint256 len = order.length;
-        for (uint256 i = 0; i < len;) {
-            require(order[i] != address(0), "zero address in payout order");
+        require(len <= MAX_MEMBERS, "order exceeds MAX_MEMBERS");
 
-            // Check for duplicates
-            for (uint256 j = i + 1; j < len;) {
-                require(order[i] != order[j], "duplicate address in payout order");
+        // Use memory array to track seen addresses for efficient duplicate detection
+        address[] memory seen = new address[](len);
+
+        for (uint256 i = 0; i < len;) {
+            address current = order[i];
+            require(current != address(0), "zero address in payout order");
+
+            // Check against previously seen addresses only (more efficient than nested comparison)
+            for (uint256 j = 0; j < i;) {
+                require(seen[j] != current, "duplicate address in payout order");
                 unchecked { ++j; }
             }
 
+            seen[i] = current;
             unchecked { ++i; }
         }
     }

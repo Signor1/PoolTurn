@@ -72,7 +72,7 @@ export default function CreateCirclePage() {
                 initialPayoutOrder: [], // Empty array for now - can be set later
             })
         } catch (error) {
-            console.error("Failed to create circle:", error)
+            // Error is already handled by the mutation hook
         }
     }
 

@@ -291,8 +291,7 @@ export const useAllCirclesMulticall = () => {
           formattedCircles.push(formattedCircle);
         }
       } catch (error) {
-        console.error(`Error processing circle ${circleId}:`, error);
-        // Continue with other circles
+        // Continue with other circles even if one fails
       }
     }
 

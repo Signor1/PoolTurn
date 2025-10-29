@@ -615,14 +615,6 @@ export const useJoinCircleFlow = (token_address: string) => {
                     position: "top-right",
                 });
 
-                console.log('Joining circle with sufficient allowance:', {
-                    circleId: circleId.toString(),
-                    userAddress,
-                    currentAllowance: currentAllowanceAmount.toString(),
-                    requiredAmount: requiredAmount.toString(),
-                    poolturnContract: POOLTURN_CONTRACT_ADDRESS
-                });
-
                 writeJoin({
                     address: POOLTURN_CONTRACT_ADDRESS,
                     abi: PoolTurnSecureABI,
@@ -656,7 +648,6 @@ export const useJoinCircleFlow = (token_address: string) => {
                 });
             }
         } catch (error: any) {
-            console.error('Join flow error:', error);
             toast.error(error.message || "Failed to start join process", {
                 id: "join-flow-error",
                 position: "top-right"
@@ -676,11 +667,6 @@ export const useJoinCircleFlow = (token_address: string) => {
             });
 
             // Step 2: Join circle
-            console.log('Attempting to join circle after approval:', {
-                circleId: currentCircleId?.toString(),
-                poolturnContract: POOLTURN_CONTRACT_ADDRESS
-            });
-
             writeJoin({
                 address: POOLTURN_CONTRACT_ADDRESS,
                 abi: PoolTurnSecureABI,
@@ -712,7 +698,6 @@ export const useJoinCircleFlow = (token_address: string) => {
     // Handle approval errors
     useEffect(() => {
         if (approveError && currentStep === 'approving') {
-            console.error('Approval error:', approveError);
             const errorMessage = (approveError as BaseError).shortMessage ||
                 (approveError as BaseError).message ||
                 "Transaction failed";
@@ -733,7 +718,6 @@ export const useJoinCircleFlow = (token_address: string) => {
     // Handle join errors and failed transactions
     useEffect(() => {
         if (joinError && currentStep === 'joining') {
-            console.error('Join error:', joinError);
             const errorMessage = (joinError as BaseError).shortMessage ||
                 (joinError as BaseError).message ||
                 "Transaction failed";
@@ -755,7 +739,6 @@ export const useJoinCircleFlow = (token_address: string) => {
     // Handle failed transaction receipts (status = 0)
     useEffect(() => {
         if (joinReceipt && joinReceipt.status === 'reverted' && currentStep === 'joining') {
-            console.error('Join transaction reverted:', joinReceipt);
             // Clear any existing loading toasts first
             toast.dismiss("join-flow-checking");
             toast.dismiss("join-flow-joining");
