@@ -6,7 +6,6 @@ pragma solidity ^0.8.19;
  * @notice Manages yield generation for insurance pool funds via Aave V3
  * @dev Deposits idle insurance funds into Aave to earn yield
  */
-
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -134,7 +133,12 @@ contract YieldManager is Ownable {
      * @param amount The amount to withdraw (0 = withdraw all)
      * @param to The address to send withdrawn funds to
      */
-    function withdrawFromYield(uint256 circleId, address token, uint256 amount, address to)
+    function withdrawFromYield(
+        uint256 circleId,
+        address token,
+        uint256 amount,
+        address to
+    )
         external
         onlyOwner
         returns (uint256)
@@ -172,11 +176,7 @@ contract YieldManager is Ownable {
      * @return memberShare Amount of yield allocated to members
      * @return treasuryShare Amount of yield allocated to treasury
      */
-    function harvestYield(uint256 circleId)
-        external
-        onlyOwner
-        returns (uint256 memberShare, uint256 treasuryShare)
-    {
+    function harvestYield(uint256 circleId) external onlyOwner returns (uint256 memberShare, uint256 treasuryShare) {
         return _harvestYield(circleId);
     }
 

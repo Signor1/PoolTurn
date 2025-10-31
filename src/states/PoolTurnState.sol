@@ -1,10 +1,8 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
 import { PoolTurnTypes } from "../types/PoolTurnTypes.sol";
 import { YieldManager } from "../YieldManager.sol";
-
 
 abstract contract PoolTurn {
     uint256 public nextCircleId = 1;
