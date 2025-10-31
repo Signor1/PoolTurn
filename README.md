@@ -9,6 +9,8 @@ PoolTurn is a blockchain-based Rotating Savings and Credit Association (PoolTurn
 - **Collateral Protection**: Members lock collateral to ensure payment commitments
 - **Rotation-based Payouts**: Deterministic winner selection without randomness
 - **Insurance Pool**: Community fund to handle extreme default scenarios
+- **Yield-Generating Insurance Pool** ✨ NEW: Insurance funds earn yield via Aave V3 (70% to members, 30% to protocol)
+- **Creator Reward Pool** ✨ NEW: Creators can deposit bonus rewards for members with perfect payment history
 - **Pull Payment Model**: Gas-efficient and reentrancy-safe payout system
 - **Reputation System**: Default tracking with automatic member banning
 - **Admin Controls**: Emergency functions with strict access controls
@@ -24,14 +26,22 @@ PoolTurn is a blockchain-based Rotating Savings and Credit Association (PoolTurn
 ## 🏗️ Architecture
 
 ```
-├── src/PoolTurnSecure.sol           # Main PoolTurn smart contract
-├── test/PoolTurn.t.sol  # Comprehensive test suite (33 tests)
-├── frontend/               # Next.js application
-│   ├── app/               # App Router pages
-│   ├── components/        # UI components
-│   ├── lib/               # Web3 configuration
-│   └── hooks/             # Custom React hooks
-└── foundry.toml           # Foundry configuration
+├── src/
+│   ├── PoolTurnSecure.sol         # Main PoolTurn smart contract
+│   ├── YieldManager.sol           # ✨ NEW: Aave V3 yield generation manager
+│   ├── USDC.sol                   # Mock USDC token (for testing)
+│   └── USDT.sol                   # Mock USDT token (for testing)
+├── test/
+│   ├── PoolTurnSecure.t.sol       # Comprehensive test suite (32 tests)
+│   └── YieldAndRewards.t.sol      # ✨ NEW: Yield & rewards test suite (12 tests)
+├── frontend/                      # Next.js application
+│   ├── app/                       # App Router pages
+│   ├── components/                # UI components
+│   ├── lib/                       # Web3 configuration
+│   ├── hooks/                     # Custom React hooks
+│   └── abi/                       # Contract ABIs
+├── YIELD_AND_REWARDS.md           # ✨ NEW: Complete yield & rewards documentation
+└── foundry.toml                   # Foundry configuration
 ```
 
 ## 🚀 Quick Start
@@ -48,7 +58,7 @@ PoolTurn is a blockchain-based Rotating Savings and Credit Association (PoolTurn
 # Build contracts
 forge build
 
-# Run tests (33 comprehensive tests)
+# Run all tests (44 total: 32 core + 12 yield/rewards)
 forge test
 
 # Run tests with gas reporting
@@ -88,6 +98,7 @@ NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_wallet_connect_project_id
 NEXT_PUBLIC_CHAIN_ID=8453
 NEXT_PUBLIC_RPC_URL=https://base-mainnet.g.alchemy.com/v2/your_alchemy_key
 NEXT_PUBLIC_POOLTURN_CONTRACT_ADDRESS=your_deployed_contract_address
+NEXT_PUBLIC_YIELDMANAGER_CONTRACT_ADDRESS=your_yieldmanager_address
 NEXT_PUBLIC_MULTICALL3_ADDRESS=0xcA11bde05977b3631167028862bE2a173976CA11
 NEXT_PUBLIC_USDC_ADDRESS=your_usdc_token_address
 NEXT_PUBLIC_USDT_ADDRESS=your_usdt_token_address
@@ -96,28 +107,40 @@ NEXT_PUBLIC_USDT_ADDRESS=your_usdt_token_address
 ## 📋 How It Works
 
 ### 1. Circle Creation
+
 - Creator sets contribution amount, period duration, max members
 - Defines collateral factor (1x-10x contribution as security)
 - Optional insurance fee for community protection pool
+- **✨ NEW**: Optional yield generation (insurance pool earns via Aave V3)
+- **✨ NEW**: Optional creator reward pool for perfect-payment members
 
 ### 2. Member Joining
+
 - Members lock collateral + insurance fee to join
 - Circle activates when reaching maximum capacity
+- **✨ NEW**: Insurance pool automatically deposited to Aave if yield enabled
 - Payout order is set deterministically
 
 ### 3. Contribution Rounds
+
 - Members contribute each period (weekly/monthly)
 - Winners receive full pot based on rotation
 - Defaulters have collateral slashed automatically
+- **✨ NEW**: Yield accumulates on insurance pool during circle lifecycle
 
 ### 4. Payout Claims
+
 - Winners can claim payouts using pull payment pattern
 - Collateral returned after successful circle completion
 - Insurance pool covers extreme scenarios
+- **✨ NEW**: Members claim their share of earned yield
+- **✨ NEW**: Perfect-payment members claim creator rewards after completion
 
 ## 🧪 Testing
 
-The project includes a comprehensive test suite with 33 tests covering:
+The project includes a comprehensive test suite with **44 tests** covering:
+
+### Core Functionality (32 tests)
 
 - **Circle Creation**: Parameter validation and initialization
 - **Member Management**: Joining, collateral locking, activation
@@ -126,6 +149,14 @@ The project includes a comprehensive test suite with 33 tests covering:
 - **Admin Functions**: Pause, cancel, emergency procedures
 - **Edge Cases**: Insurance pool usage, reputation system
 - **Security**: Access control, reentrancy protection
+
+### ✨ Yield & Rewards (12 tests)
+
+- **YieldManager Setup**: Contract deployment and configuration
+- **Yield Generation**: Insurance pool deposit to Aave, yield harvesting
+- **Yield Distribution**: Member yield shares and claims
+- **Creator Rewards**: Reward pool deposits, eligibility checks, claims
+- **Edge Cases**: Double claims, non-eligible members, completed circles
 
 ```shell
 # Run all tests
@@ -137,6 +168,30 @@ forge test --match-test testCreateCircleSuccess
 # Run with verbose output
 forge test -vv
 ```
+
+## ✨ Yield & Rewards Features
+
+### Yield-Generating Insurance Pool
+
+Insurance pool funds automatically earn yield through Aave V3 on Base Mainnet when enabled:
+
+- **Automated Yield**: Insurance pool deposited to Aave when circle activates
+- **Member Benefits**: 70% of earned yield distributed to all circle members
+- **Protocol Treasury**: 30% of yield supports platform development
+- **Supported Tokens**: USDC only (USDT not available on Aave V3 Base)
+- **Flexible Claiming**: Members can harvest and claim yield anytime
+
+### Creator Reward Pool
+
+Circle creators can incentivize perfect payment behavior with bonus rewards:
+
+- **Optional Deposit**: Creators fund reward pool during circle creation
+- **Eligibility**: Only members with zero defaults qualify
+- **Equal Distribution**: Reward split equally among all eligible members
+- **Post-Completion**: Claimable only after circle successfully completes
+- **One-Time Claim**: Each eligible member claims their share once
+
+For complete documentation and usage examples, see [YIELD_AND_REWARDS.md](./YIELD_AND_REWARDS.md).
 
 ## 🌐 Network Information
 
@@ -168,10 +223,12 @@ forge test -vv
 ## 📦 Technology Stack
 
 ### Smart Contracts
+
 - **Solidity** ^0.8.19
 - **Foundry** for development and testing
 - **OpenZeppelin** for security primitives
 - **ERC20** token support for contributions
+- **Aave V3** ✨ NEW: Yield generation on insurance pools
 
 ### Frontend
 - **Next.js** 15.2.4 with App Router

@@ -9,6 +9,9 @@
  * - Contributions: useContribute, useContributeFlow, useFinalizeRound
  * - Joining: useJoinCircle, useJoinCircleFlow
  * - Payouts: useClaimPayout, useWithdrawCollateral
+ * - Yield & Rewards: useHarvestYield, useClaimYield, useClaimCreatorReward, useMemberYieldShare,
+ *                    useCreatorRewardPool, useHasClaimedReward, useCirclePendingYield,
+ *                    useEligibleRewardMembers, useIsYieldEnabled, useCircleTotalYieldValue
  */
 
 // Circle creation
@@ -25,3 +28,17 @@ export { useJoinCircle, useJoinCircleFlow } from './useJoinCircle';
 
 // Payout hooks
 export { useClaimPayout, useWithdrawCollateral } from './usePayout';
+
+// Yield & Rewards hooks
+export {
+    useHarvestYield,
+    useClaimYield,
+    useClaimCreatorReward,
+    useMemberYieldShare,
+    useCreatorRewardPool,
+    useHasClaimedReward,
+    useCirclePendingYield,
+    useEligibleRewardMembers,
+    useIsYieldEnabled,
+    useCircleTotalYieldValue,
+} from './useYieldAndRewards';

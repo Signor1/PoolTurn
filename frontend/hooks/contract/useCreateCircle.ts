@@ -25,6 +25,8 @@ export const useCreateCircle = () => {
         collateralFactor: bigint;
         insuranceFee: bigint;
         initialPayoutOrder: `0x${string}`[];
+        enableYield?: boolean;
+        creatorRewardAmount?: bigint;
     }) => {
         try {
             writeContract({
@@ -41,6 +43,8 @@ export const useCreateCircle = () => {
                     params.collateralFactor,
                     params.insuranceFee,
                     params.initialPayoutOrder,
+                    params.enableYield ?? false,
+                    params.creatorRewardAmount ?? BigInt(0),
                 ],
             });
         } catch (error: any) {
