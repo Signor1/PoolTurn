@@ -17,6 +17,7 @@ import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/Saf
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { YieldManager } from "./YieldManager.sol";
 
 contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
@@ -100,6 +101,23 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     mapping(address => bool) public globallyBanned;
     mapping(address => uint256) public globalDefaults;
 
+    // --- Yield & Rewards State ---
+
+    // YieldManager contract for generating yield on insurance pool
+    YieldManager public yieldManager;
+
+    // Creator reward pool per circle (optional bonus for members with perfect payment)
+    mapping(uint256 => uint256) public creatorRewardPool;
+
+    // Track member yield shares (accumulated from insurance pool yield)
+    mapping(uint256 => mapping(address => uint256)) public memberYieldShares;
+
+    // Track if yield generation is enabled per circle
+    mapping(uint256 => bool) public yieldGenerationEnabled;
+
+    // Track if member has claimed creator reward
+    mapping(uint256 => mapping(address => bool)) public creatorRewardClaimed;
+
     // events
     event CircleCreated(uint256 indexed circleId, address indexed creator);
     event MemberJoined(
@@ -117,6 +135,12 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     event EmergencyWithdraw(uint256 indexed circleId, address indexed to, uint256 amount);
     event PayoutOrderSet(uint256 indexed circleId, address[] payoutOrder);
     event CircleCancelled(uint256 indexed circleId);
+    event YieldManagerSet(address indexed yieldManager);
+    event YieldGenerationToggled(uint256 indexed circleId, bool enabled);
+    event YieldHarvestedForCircle(uint256 indexed circleId, uint256 totalYield, uint256 memberShare);
+    event MemberYieldClaimed(uint256 indexed circleId, address indexed member, uint256 amount);
+    event CreatorRewardDeposited(uint256 indexed circleId, address indexed creator, uint256 amount);
+    event CreatorRewardClaimed(uint256 indexed circleId, address indexed member, uint256 amount);
 
     // --- Modifiers ---
     modifier circleExists(uint256 circleId) {
@@ -137,6 +161,8 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     /**
      * Create a PoolTurn circle. Creator is not auto-joined.
      * payoutOrder can be provided now (preferred) or later when all members join.
+     * @param enableYield If true, insurance pool will be deposited to Aave for yield
+     * @param creatorRewardAmount Optional reward amount creator deposits for perfect-payment members
      */
     function createCircle(
         string calldata _name,
@@ -147,7 +173,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         uint256 maxMembers,
         uint256 collateralFactor,
         uint256 insuranceFee,
-        address[] calldata initialPayoutOrder
+        address[] calldata initialPayoutOrder,
+        bool enableYield,
+        uint256 creatorRewardAmount
     )
         external
         whenNotPaused
@@ -186,6 +214,21 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             payoutOrder[circleId] = initialPayoutOrder;
             c.rotationLocked = true;
             emit PayoutOrderSet(circleId, initialPayoutOrder);
+        }
+
+        // Enable yield generation if requested and YieldManager is set
+        if (enableYield) {
+            require(address(yieldManager) != address(0), "YieldManager not set");
+            yieldGenerationEnabled[circleId] = true;
+            yieldManager.setYieldEnabled(circleId, true);
+            emit YieldGenerationToggled(circleId, true);
+        }
+
+        // Handle creator reward pool deposit if provided
+        if (creatorRewardAmount > 0) {
+            c.token.safeTransferFrom(msg.sender, address(this), creatorRewardAmount);
+            creatorRewardPool[circleId] = creatorRewardAmount;
+            emit CreatorRewardDeposited(circleId, msg.sender, creatorRewardAmount);
         }
 
         emit CircleCreated(circleId, msg.sender);
@@ -256,6 +299,17 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
                 }
                 c.rotationLocked = true; // lock to avoid changes
                 emit PayoutOrderSet(circleId, payoutOrder[circleId]);
+            }
+
+            // Deposit insurance pool to yield manager if enabled
+            if (yieldGenerationEnabled[circleId] && address(yieldManager) != address(0)) {
+                uint256 poolAmount = insurancePool[circleId];
+                if (poolAmount > 0) {
+                    // Approve YieldManager to spend tokens
+                    c.token.safeIncreaseAllowance(address(yieldManager), poolAmount);
+                    // Deposit to yield generation
+                    yieldManager.depositToYield(circleId, address(c.token), poolAmount);
+                }
             }
 
             emit RoundStarted(circleId, c.currentRound, c.roundStart);
@@ -351,6 +405,95 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             c.token.safeTransfer(msg.sender, amount);
         }
         emit CollateralWithdrawn(circleId, msg.sender, amount);
+    }
+
+    /**
+     * @notice Harvest yield from Aave and distribute proportionally to circle members
+     * @param circleId The circle ID
+     */
+    function harvestYield(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
+        require(yieldGenerationEnabled[circleId], "yield not enabled");
+        require(address(yieldManager) != address(0), "YieldManager not set");
+
+        // Harvest yield from YieldManager
+        (uint256 memberShare,) = yieldManager.harvestYield(circleId);
+
+        if (memberShare == 0) return;
+
+        // Distribute yield proportionally to all circle members
+        address[] storage mems = membersList[circleId];
+        uint256 memsLen = mems.length;
+        require(memsLen > 0, "no members");
+
+        uint256 sharePerMember = memberShare / memsLen;
+
+        for (uint256 i = 0; i < memsLen;) {
+            memberYieldShares[circleId][mems[i]] += sharePerMember;
+            unchecked { ++i; }
+        }
+
+        emit YieldHarvestedForCircle(circleId, memberShare, sharePerMember);
+    }
+
+    /**
+     * @notice Claim accumulated yield share for a member
+     * @param circleId The circle ID
+     */
+    function claimYield(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
+        uint256 yieldAmount = memberYieldShares[circleId][msg.sender];
+        require(yieldAmount > 0, "no yield to claim");
+
+        memberYieldShares[circleId][msg.sender] = 0;
+
+        Circle storage c = circles[circleId];
+
+        // Withdraw yield from YieldManager if needed
+        if (address(yieldManager) != address(0)) {
+            yieldManager.withdrawFromYield(circleId, address(c.token), yieldAmount, msg.sender);
+        }
+
+        emit MemberYieldClaimed(circleId, msg.sender, yieldAmount);
+    }
+
+    /**
+     * @notice Claim creator reward for members with perfect payment history
+     * @param circleId The circle ID
+     */
+    function claimCreatorReward(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
+        Circle storage c = circles[circleId];
+        require(c.state == CircleState.Completed, "circle not completed");
+
+        Member storage m = members[circleId][msg.sender];
+        require(m.exists, "not a member");
+        require(m.defaults == 0, "has defaults, not eligible");
+        require(!creatorRewardClaimed[circleId][msg.sender], "already claimed");
+
+        uint256 rewardPool = creatorRewardPool[circleId];
+        require(rewardPool > 0, "no reward pool");
+
+        // Count members with perfect payment (0 defaults)
+        address[] storage mems = membersList[circleId];
+        uint256 memsLen = mems.length;
+        uint256 perfectMembers = 0;
+
+        for (uint256 i = 0; i < memsLen;) {
+            if (members[circleId][mems[i]].defaults == 0) {
+                unchecked { perfectMembers++; }
+            }
+            unchecked { ++i; }
+        }
+
+        require(perfectMembers > 0, "no perfect members");
+
+        uint256 rewardPerMember = rewardPool / perfectMembers;
+        require(rewardPerMember > 0, "reward too small");
+
+        // Mark as claimed
+        creatorRewardClaimed[circleId][msg.sender] = true;
+        creatorRewardPool[circleId] -= rewardPerMember;
+
+        c.token.safeTransfer(msg.sender, rewardPerMember);
+        emit CreatorRewardClaimed(circleId, msg.sender, rewardPerMember);
     }
 
     // --- Internal helpers ---
@@ -556,6 +699,16 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     // --- Admin functions ---
 
     /**
+     * @notice Set the YieldManager contract address
+     * @param _yieldManager Address of the YieldManager contract
+     */
+    function setYieldManager(address _yieldManager) external onlyOwner {
+        require(_yieldManager != address(0), "zero address");
+        yieldManager = YieldManager(_yieldManager);
+        emit YieldManagerSet(_yieldManager);
+    }
+
+    /**
      * Pause contract in emergency
      */
     function pause() external onlyOwner {
@@ -754,5 +907,85 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
     function getInsurancePool(uint256 circleId) external view returns (uint256) {
         return insurancePool[circleId];
+    }
+
+    // --- Yield & Rewards View Functions ---
+
+    /**
+     * @notice Get member's pending yield share
+     * @param circleId The circle ID
+     * @param member The member address
+     * @return Pending yield amount
+     */
+    function getMemberYieldShare(uint256 circleId, address member) external view returns (uint256) {
+        return memberYieldShares[circleId][member];
+    }
+
+    /**
+     * @notice Get creator reward pool balance for a circle
+     * @param circleId The circle ID
+     * @return Creator reward pool balance
+     */
+    function getCreatorRewardPool(uint256 circleId) external view returns (uint256) {
+        return creatorRewardPool[circleId];
+    }
+
+    /**
+     * @notice Check if member has claimed creator reward
+     * @param circleId The circle ID
+     * @param member The member address
+     * @return True if already claimed
+     */
+    function hasClaimedCreatorReward(uint256 circleId, address member) external view returns (bool) {
+        return creatorRewardClaimed[circleId][member];
+    }
+
+    /**
+     * @notice Get pending yield for a circle from YieldManager
+     * @param circleId The circle ID
+     * @return Pending yield amount
+     */
+    function getCirclePendingYield(uint256 circleId) external view returns (uint256) {
+        if (address(yieldManager) == address(0)) return 0;
+        return yieldManager.getPendingYield(circleId);
+    }
+
+    /**
+     * @notice Get total value (principal + yield) in YieldManager for a circle
+     * @param circleId The circle ID
+     * @return Total value
+     */
+    function getCircleTotalYieldValue(uint256 circleId) external view returns (uint256) {
+        if (address(yieldManager) == address(0)) return 0;
+        return yieldManager.getTotalValue(circleId);
+    }
+
+    /**
+     * @notice Check if yield generation is enabled for a circle
+     * @param circleId The circle ID
+     * @return True if enabled
+     */
+    function isYieldEnabled(uint256 circleId) external view returns (bool) {
+        return yieldGenerationEnabled[circleId];
+    }
+
+    /**
+     * @notice Get count of members eligible for creator reward (perfect payment)
+     * @param circleId The circle ID
+     * @return Number of members with zero defaults
+     */
+    function getEligibleRewardMembers(uint256 circleId) external view returns (uint256) {
+        address[] storage mems = membersList[circleId];
+        uint256 memsLen = mems.length;
+        uint256 count = 0;
+
+        for (uint256 i = 0; i < memsLen;) {
+            if (members[circleId][mems[i]].defaults == 0) {
+                unchecked { count++; }
+            }
+            unchecked { ++i; }
+        }
+
+        return count;
     }
 }
