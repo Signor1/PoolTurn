@@ -1,4 +1,5 @@
-
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 library PoolTurnEvent {
     event RoundStarted(uint256 indexed circleId, uint256 indexed roundId, uint256 startedAt);
