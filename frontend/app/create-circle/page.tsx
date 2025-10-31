@@ -16,6 +16,7 @@ import { SUPPORTED_TOKENS, PERIOD_PRESETS, CIRCLE_LIMITS, DEFAULT_CIRCLE_VALUES 
 import { useCreateCircle } from "@/hooks/usePoolTurnContract"
 import { useAccount } from "wagmi"
 import { parseUnits } from "viem"
+import { YieldRewardsSection } from "@/components/yield-rewards-section"
 
 export default function CreateCirclePage() {
     const { isConnected } = useAccount()
@@ -32,6 +33,8 @@ export default function CreateCirclePage() {
         maxMembers: DEFAULT_CIRCLE_VALUES.maxMembers.toString(),
         collateralFactor: DEFAULT_CIRCLE_VALUES.collateralFactor.toString(),
         insuranceFee: DEFAULT_CIRCLE_VALUES.insuranceFee,
+        enableYield: DEFAULT_CIRCLE_VALUES.enableYield,
+        creatorRewardAmount: DEFAULT_CIRCLE_VALUES.creatorRewardAmount,
     })
 
     const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -70,6 +73,8 @@ export default function CreateCirclePage() {
                 collateralFactor: BigInt(formData.collateralFactor),
                 insuranceFee: parseUnits(formData.insuranceFee, selectedToken.decimals),
                 initialPayoutOrder: [], // Empty array for now - can be set later
+                enableYield: formData.enableYield,
+                creatorRewardAmount: parseUnits(formData.creatorRewardAmount || "0", selectedToken.decimals),
             })
         } catch (error) {
             // Error is already handled by the mutation hook
@@ -272,6 +277,15 @@ export default function CreateCirclePage() {
                                         </div>
                                     </CardContent>
                                 </Card>
+
+                                {/* Yield & Rewards Section */}
+                                <YieldRewardsSection
+                                    enableYield={formData.enableYield}
+                                    creatorRewardAmount={formData.creatorRewardAmount}
+                                    tokenSymbol={selectedToken.symbol}
+                                    onEnableYieldChange={(enabled) => setFormData(prev => ({ ...prev, enableYield: enabled }))}
+                                    onRewardAmountChange={(amount) => setFormData(prev => ({ ...prev, creatorRewardAmount: amount }))}
+                                />
                             </div>
 
                             {/* Preview Panel */}
