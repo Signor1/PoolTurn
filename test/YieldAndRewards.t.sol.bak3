@@ -117,8 +117,7 @@ contract YieldAndRewardsTest is Test {
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
             emptyOrder,
-            true, // enable yield
-            0, // no creator reward
+            true, // enable yield            0, // no creator reward
             1 hours // grace period
         );
 
@@ -141,7 +140,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             true, // enable yield
-            0
+            0, // no creator reward
+            1 hours // grace period
         );
     }
 
@@ -170,7 +170,7 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false, // no yield
-            CREATOR_REWARD
+            CREATOR_REWARD, 1 hours
         );
 
         assertEq(poolturn.getCreatorRewardPool(circleId), CREATOR_REWARD);
@@ -220,7 +220,7 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD, 1 hours
         );
 
         // Join circle with 4 members
@@ -238,7 +238,7 @@ contract YieldAndRewardsTest is Test {
         }
 
         // Circle should be completed
-        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
         assertEq(uint256(state), uint256(PoolTurnSecure.CircleState.Completed));
 
         // All 4 members have perfect payment, so each gets 25 USDC
@@ -272,7 +272,7 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD, 1 hours
         );
 
         // Join circle
@@ -330,7 +330,7 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD, 1 hours
         );
 
         joinCircleWithApproval(circleId, alice);
@@ -370,7 +370,7 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD, 1 hours
         );
 
         joinCircleWithApproval(circleId, alice);
@@ -399,7 +399,7 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD, 1 hours
         );
 
         joinCircleWithApproval(circleId, alice);
@@ -427,7 +427,7 @@ contract YieldAndRewardsTest is Test {
     // ================================
 
     function joinCircleWithApproval(uint256 circleId, address member) internal {
-        (,,,,, uint256 collateralFactor, uint256 insuranceFee,,,,,) = poolturn.getCircleInfo(circleId);
+        (,,,,, uint256 collateralFactor, uint256 insuranceFee,,,,) = poolturn.getCircleInfo(circleId);
         uint256 totalLock = CONTRIBUTION_AMOUNT * collateralFactor + insuranceFee;
         vm.startPrank(member);
         token.approve(address(poolturn), totalLock);
