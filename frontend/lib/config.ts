@@ -45,6 +45,8 @@ export const CIRCLE_LIMITS = {
   MAX_CONTRIBUTION: 10000, // Maximum contribution amount
   MIN_COLLATERAL_FACTOR: 1,
   MAX_COLLATERAL_FACTOR: 10,
+  MIN_GRACE_PERIOD_HOURS: 1, // 1 hour minimum (matches contract)
+  MAX_GRACE_PERIOD_DAYS: 7, // 7 days maximum (matches contract)
 } as const;
 
 // Period duration presets (in seconds)
@@ -53,6 +55,16 @@ export const PERIOD_PRESETS = {
   BIWEEKLY: 14 * 24 * 60 * 60,
   MONTHLY: 30 * 24 * 60 * 60,
   QUARTERLY: 90 * 24 * 60 * 60,
+} as const;
+
+// Grace period presets (in seconds)
+export const GRACE_PERIOD_PRESETS = {
+  ONE_HOUR: 1 * 60 * 60,
+  SIX_HOURS: 6 * 60 * 60,
+  TWELVE_HOURS: 12 * 60 * 60,
+  ONE_DAY: 1 * 24 * 60 * 60,
+  TWO_DAYS: 2 * 24 * 60 * 60,
+  THREE_DAYS: 3 * 24 * 60 * 60,
 } as const;
 
 // Circle states enum
@@ -73,4 +85,5 @@ export const DEFAULT_CIRCLE_VALUES = {
   token: SUPPORTED_TOKENS.USDC.address,
   enableYield: false,
   creatorRewardAmount: "0",
+  gracePeriod: GRACE_PERIOD_PRESETS.ONE_DAY, // 1 day default
 } as const;

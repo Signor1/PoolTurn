@@ -26,6 +26,8 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     uint256 public constant MAX_MEMBERS = 100; // safety cap to prevent gas bombs
     uint256 public constant DEFAULT_BAN_THRESHOLD = 3; // defaults before ban
     uint256 public constant MIN_PERIOD_SECONDS = 3 minutes;
+    uint256 public constant MIN_GRACE_PERIOD = 1 hours; // minimum grace period
+    uint256 public constant MAX_GRACE_PERIOD = 7 days; // maximum grace period
 
     // --- Types ---
     enum CircleState {
@@ -43,6 +45,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         uint256 maxMembers; // N
         uint256 collateralFactor; // CF (1 == 1x contribution)
         uint256 insuranceFee; // per-member fee added to insurance pool at join
+        uint256 gracePeriod; // extra time after period before default (in seconds)
         uint256 startTimestamp; // filled when circle becomes Active
         uint256 currentRound; // 1..N
         uint256 roundStart; // timestamp of current round
@@ -163,6 +166,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * payoutOrder can be provided now (preferred) or later when all members join.
      * @param enableYield If true, insurance pool will be deposited to Aave for yield
      * @param creatorRewardAmount Optional reward amount creator deposits for perfect-payment members
+     * @param gracePeriod Extra time (in seconds) after period deadline before members are marked as defaulted
      */
     function createCircle(
         string calldata _name,
@@ -175,7 +179,8 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         uint256 insuranceFee,
         address[] calldata initialPayoutOrder,
         bool enableYield,
-        uint256 creatorRewardAmount
+        uint256 creatorRewardAmount,
+        uint256 gracePeriod
     )
         external
         whenNotPaused
@@ -187,6 +192,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         require(periodDuration >= MIN_PERIOD_SECONDS, "period too short");
         require(maxMembers >= 2 && maxMembers <= MAX_MEMBERS, "invalid members");
         require(collateralFactor >= 1, "collateralFactor < 1");
+        require(gracePeriod >= MIN_GRACE_PERIOD && gracePeriod <= MAX_GRACE_PERIOD, "invalid grace period");
 
         uint256 circleId = nextCircleId++;
 
@@ -205,6 +211,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         // Validate insurance fee is reasonable (max 100% of contribution amount)
         require(insuranceFee <= contributionAmount, "insurance fee too high");
         c.insuranceFee = insuranceFee;
+        c.gracePeriod = gracePeriod;
         c.state = CircleState.Open;
 
         // if initial payoutOrder provided, validate and lock it
@@ -369,7 +376,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         uint256 roundId = c.currentRound;
         RoundState storage r = roundStates[circleId][roundId];
         require(!r.settled, "already settled");
-        require(block.timestamp >= c.roundStart + c.periodDuration, "round still ongoing");
+        require(block.timestamp >= c.roundStart + c.periodDuration + c.gracePeriod, "grace period active");
 
         _handleDefaultsAndFinalize(circleId, roundId);
     }
@@ -848,6 +855,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             uint256 maxMembers,
             uint256 collateralFactor,
             uint256 insuranceFee,
+            uint256 gracePeriod,
             uint256 startTimestamp,
             uint256 currentRound,
             uint256 roundStart,
@@ -862,6 +870,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         maxMembers = c.maxMembers;
         collateralFactor = c.collateralFactor;
         insuranceFee = c.insuranceFee;
+        gracePeriod = c.gracePeriod;
         startTimestamp = c.startTimestamp;
         currentRound = c.currentRound;
         roundStart = c.roundStart;

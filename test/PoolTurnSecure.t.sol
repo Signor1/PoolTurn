@@ -68,13 +68,14 @@ contract PoolTurnSecureTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false, // no yield generation
-            0 // no creator reward
+            0, // no creator reward
+            1 hours // grace period
         );
     }
 
     // Helper function to join a circle with proper approvals
     function joinCircleWithApproval(uint256 circleId, address member) internal {
-        (,,,,, uint256 collateralFactor, uint256 insuranceFee,,,,) = poolturn.getCircleInfo(circleId);
+        (,,,,, uint256 collateralFactor, uint256 insuranceFee,,,,,) = poolturn.getCircleInfo(circleId);
         uint256 totalLock = CONTRIBUTION_AMOUNT * collateralFactor + insuranceFee;
         vm.startPrank(member);
         token.approve(address(poolturn), totalLock);
@@ -109,9 +110,7 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
 
         assertEq(circleId, 1);
@@ -125,6 +124,7 @@ contract PoolTurnSecureTest is Test {
             uint256 maxMembers,
             uint256 collateralFactor,
             uint256 insuranceFee,
+            uint256 gracePeriod,
             uint256 startTimestamp,
             uint256 currentRound,
             uint256 roundStart,
@@ -167,7 +167,8 @@ contract PoolTurnSecureTest is Test {
             INSURANCE_FEE,
             payoutOrder,
             false, // no yield
-            0 // no creator reward
+            0, // no creator reward
+            1 hours // grace period
         );
 
         address[] memory storedOrder = poolturn.getPayoutOrder(circleId);
@@ -196,9 +197,7 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
     }
 
@@ -207,17 +206,7 @@ contract PoolTurnSecureTest is Test {
 
         vm.expectRevert("contrib zero");
         poolturn.createCircle(
-            "",
-            "",
-            address(token),
-            0,
-            PERIOD_DURATION,
-            MAX_MEMBERS,
-            COLLATERAL_FACTOR,
-            INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            "", "", address(token), 0, PERIOD_DURATION, MAX_MEMBERS, COLLATERAL_FACTOR, INSURANCE_FEE, emptyOrder, false, 0, 1 hours
         );
     }
 
@@ -234,9 +223,7 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
     }
 
@@ -254,9 +241,7 @@ contract PoolTurnSecureTest is Test {
             1, // Less than minimum 2
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
 
         // Too many members
@@ -270,9 +255,7 @@ contract PoolTurnSecureTest is Test {
             101, // More than MAX_MEMBERS (100)
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
     }
 
@@ -289,9 +272,7 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             0, // Less than minimum 1
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
     }
 
@@ -361,7 +342,7 @@ contract PoolTurnSecureTest is Test {
         vm.stopPrank();
 
         // Verify circle is now active
-        (,,,,,,, uint256 startTimestamp, uint256 currentRound,, PoolTurnSecure.CircleState state) =
+        (,,,,,,,, uint256 startTimestamp, uint256 currentRound,, PoolTurnSecure.CircleState state) =
             poolturn.getCircleInfo(circleId);
 
         assertTrue(state == PoolTurnSecure.CircleState.Active);
@@ -418,7 +399,7 @@ contract PoolTurnSecureTest is Test {
         joinCircleWithApproval(circleId, dave); // This should activate, not fail
 
         // Verify circle is now active (not full rejection)
-        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
         assertTrue(state == PoolTurnSecure.CircleState.Active);
     }
 
@@ -498,7 +479,7 @@ contract PoolTurnSecureTest is Test {
         vm.stopPrank();
 
         // Verify round advanced
-        (,,,,,,,, uint256 currentRound,,) = poolturn.getCircleInfo(circleId);
+        (,,,,,,,,, uint256 currentRound,,) = poolturn.getCircleInfo(circleId);
         assertEq(currentRound, 2);
 
         // Verify pending payout
@@ -591,8 +572,8 @@ contract PoolTurnSecureTest is Test {
         contributeWithApproval(circleId, bob);
         contributeWithApproval(circleId, carol);
 
-        // Fast forward past round deadline
-        vm.warp(block.timestamp + PERIOD_DURATION + 1);
+        // Fast forward past round deadline (including grace period)
+        vm.warp(block.timestamp + PERIOD_DURATION + 1 hours + 1);
 
         // Finalize round
         vm.expectEmit(true, true, true, true);
@@ -622,7 +603,7 @@ contract PoolTurnSecureTest is Test {
         joinCircleWithApproval(circleId, carol);
         joinCircleWithApproval(circleId, dave);
 
-        (,,,,,,, uint256 startTimestamp,,,) = poolturn.getCircleInfo(circleId);
+        (,,,,,,,, uint256 startTimestamp,,,) = poolturn.getCircleInfo(circleId);
 
         // Simulate 3 rounds where dave defaults each time
         for (uint256 round = 1; round <= 3; round++) {
@@ -631,11 +612,11 @@ contract PoolTurnSecureTest is Test {
             contributeWithApproval(circleId, bob);
             contributeWithApproval(circleId, carol);
 
-            // Fast forward to end of current round (fixed schedule)
+            // Fast forward to end of current round (fixed schedule) including grace period
             // Round N starts at startTimestamp + (N-1) * PERIOD_DURATION
             // Round N ends at startTimestamp + N * PERIOD_DURATION
             uint256 roundEndTime = startTimestamp + (round * PERIOD_DURATION);
-            vm.warp(roundEndTime + 1);
+            vm.warp(roundEndTime + 1 hours + 1);
 
             if (round == 3) {
                 vm.expectEmit(true, true, false, true);
@@ -680,7 +661,7 @@ contract PoolTurnSecureTest is Test {
         }
 
         // Verify circle is completed
-        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
         assertTrue(state == PoolTurnSecure.CircleState.Completed);
 
         // Withdraw collateral
@@ -768,9 +749,7 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
 
         // Unpause
@@ -786,9 +765,7 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
 
         assertEq(circleId, 1);
@@ -805,7 +782,7 @@ contract PoolTurnSecureTest is Test {
         poolturn.cancelCircle(circleId);
 
         // Verify circle is cancelled
-        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
         assertTrue(state == PoolTurnSecure.CircleState.Cancelled);
 
         // Verify members got refunds (collateral + insurance should be returned)
@@ -876,7 +853,7 @@ contract PoolTurnSecureTest is Test {
         contributeWithApproval(circleId, dave); // This should trigger completion
 
         // Verify circle is completed
-        (,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
+        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
         assertTrue(state == PoolTurnSecure.CircleState.Completed);
     }
 
@@ -892,8 +869,8 @@ contract PoolTurnSecureTest is Test {
         // Only alice contributes, others default
         contributeWithApproval(circleId, alice);
 
-        // Fast forward and finalize
-        vm.warp(block.timestamp + PERIOD_DURATION + 1);
+        // Fast forward and finalize (including grace period)
+        vm.warp(block.timestamp + PERIOD_DURATION + 1 hours + 1);
 
         // Get insurance pool before finalization
         uint256 insurancePoolBefore = poolturn.getInsurancePool(circleId);
@@ -923,9 +900,7 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             1, // Low collateral factor (only 1x contribution)
             INSURANCE_FEE,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
 
         // Fill and activate circle
@@ -935,8 +910,8 @@ contract PoolTurnSecureTest is Test {
         joinCircleWithApproval(circleId, dave);
 
         // Nobody contributes (all default)
-        // Fast forward and finalize
-        vm.warp(block.timestamp + PERIOD_DURATION + 1);
+        // Fast forward and finalize (including grace period)
+        vm.warp(block.timestamp + PERIOD_DURATION + 1 hours + 1);
 
         uint256 insurancePoolBefore = poolturn.getInsurancePool(circleId);
         assertEq(insurancePoolBefore, INSURANCE_FEE * 4); // 4 members contributed insurance
@@ -984,9 +959,7 @@ contract PoolTurnSecureTest is Test {
             maxMembers,
             collateralFactor,
             insuranceFee,
-            emptyOrder,
-            false,
-            0
+            emptyOrder, false, 0, 1 hours
         );
 
         // Verify circle was created successfully
@@ -1001,6 +974,7 @@ contract PoolTurnSecureTest is Test {
             ,
             ,
             ,
+            ,
             PoolTurnSecure.CircleState state
         ) = poolturn.getCircleInfo(circleId);
 
@@ -1010,5 +984,166 @@ contract PoolTurnSecureTest is Test {
         assertEq(storedCollateralFactor, collateralFactor);
         assertEq(storedInsuranceFee, insuranceFee);
         assertTrue(state == PoolTurnSecure.CircleState.Open);
+    }
+
+    // ================================
+    // Grace Period Tests
+    // ================================
+
+    function testGracePeriodValidation() public {
+        address[] memory emptyOrder;
+
+        // Test grace period too short (less than 1 hour)
+        vm.expectRevert("invalid grace period");
+        poolturn.createCircle(
+            "Test",
+            "Test",
+            address(token),
+            CONTRIBUTION_AMOUNT,
+            PERIOD_DURATION,
+            MAX_MEMBERS,
+            COLLATERAL_FACTOR,
+            INSURANCE_FEE,
+            emptyOrder,
+            false,
+            0,
+            30 minutes // too short
+        );
+
+        // Test grace period too long (more than 7 days)
+        vm.expectRevert("invalid grace period");
+        poolturn.createCircle(
+            "Test",
+            "Test",
+            address(token),
+            CONTRIBUTION_AMOUNT,
+            PERIOD_DURATION,
+            MAX_MEMBERS,
+            COLLATERAL_FACTOR,
+            INSURANCE_FEE,
+            emptyOrder,
+            false,
+            0,
+            8 days // too long
+        );
+
+        // Valid grace period should succeed
+        uint256 circleId = poolturn.createCircle(
+            "Test",
+            "Test",
+            address(token),
+            CONTRIBUTION_AMOUNT,
+            PERIOD_DURATION,
+            MAX_MEMBERS,
+            COLLATERAL_FACTOR,
+            INSURANCE_FEE,
+            emptyOrder,
+            false,
+            0,
+            3 days // valid
+        );
+
+        (,,,,,,,uint256 gracePeriod,,,,) = poolturn.getCircleInfo(circleId);
+        assertEq(gracePeriod, 3 days);
+    }
+
+    function testFinalizationFailsDuringGracePeriod() public {
+        uint256 circleId = createBasicCircle();
+
+        // Activate circle
+        joinCircleWithApproval(circleId, alice);
+        joinCircleWithApproval(circleId, bob);
+        joinCircleWithApproval(circleId, carol);
+        joinCircleWithApproval(circleId, dave);
+
+        // Dave defaults
+        contributeWithApproval(circleId, alice);
+        contributeWithApproval(circleId, bob);
+        contributeWithApproval(circleId, carol);
+
+        // Warp to just after period ends but still within grace period
+        vm.warp(block.timestamp + PERIOD_DURATION + 30 minutes);
+
+        // Finalization should fail
+        vm.expectRevert("grace period active");
+        poolturn.finalizeRoundIfExpired(circleId);
+    }
+
+    function testContributionAllowedDuringGracePeriod() public {
+        uint256 circleId = createBasicCircle();
+
+        // Activate circle
+        joinCircleWithApproval(circleId, alice);
+        joinCircleWithApproval(circleId, bob);
+        joinCircleWithApproval(circleId, carol);
+        joinCircleWithApproval(circleId, dave);
+
+        // Only alice and bob contribute before deadline
+        contributeWithApproval(circleId, alice);
+        contributeWithApproval(circleId, bob);
+
+        (,,,,,,,, uint256 startTimestamp,,,) = poolturn.getCircleInfo(circleId);
+
+        // Warp to within grace period (after period deadline but before grace period ends)
+        vm.warp(startTimestamp + PERIOD_DURATION + 30 minutes);
+
+        // Carol should still be able to contribute during grace period
+        contributeWithApproval(circleId, carol);
+
+        // This proves contributions are allowed during grace period
+        // Carol's contribution was successful (test passes if no revert occurs)
+    }
+
+    function testFinalizationSucceedsAfterGracePeriod() public {
+        uint256 circleId = createBasicCircle();
+
+        // Activate circle
+        joinCircleWithApproval(circleId, alice);
+        joinCircleWithApproval(circleId, bob);
+        joinCircleWithApproval(circleId, carol);
+        joinCircleWithApproval(circleId, dave);
+
+        // Only 3 members contribute (dave defaults)
+        contributeWithApproval(circleId, alice);
+        contributeWithApproval(circleId, bob);
+        contributeWithApproval(circleId, carol);
+
+        // Warp to after grace period
+        vm.warp(block.timestamp + PERIOD_DURATION + 1 hours + 1);
+
+        // Finalization should succeed
+        poolturn.finalizeRoundIfExpired(circleId);
+
+        // Verify default was recorded
+        (,,, uint256 defaults,,) = poolturn.getMemberInfo(circleId, dave);
+        assertEq(defaults, 1);
+    }
+
+    function testGracePeriodSavesDefaulter() public {
+        uint256 circleId = createBasicCircle();
+
+        // Activate circle
+        joinCircleWithApproval(circleId, alice);
+        joinCircleWithApproval(circleId, bob);
+        joinCircleWithApproval(circleId, carol);
+        joinCircleWithApproval(circleId, dave);
+
+        // Only 3 members contribute before deadline
+        contributeWithApproval(circleId, alice);
+        contributeWithApproval(circleId, bob);
+        contributeWithApproval(circleId, carol);
+
+        (,,,,,,,, uint256 startTimestamp,,,) = poolturn.getCircleInfo(circleId);
+
+        // Period expires but grace period is active
+        vm.warp(startTimestamp + PERIOD_DURATION + 1);
+
+        // Dave contributes during grace period (saves himself from default)
+        contributeWithApproval(circleId, dave);
+
+        // Now all 4 have contributed, round auto-advances, dave is saved!
+        // Verify dave has NO defaults (saved by grace period)
+        (,,, uint256 defaults,,) = poolturn.getMemberInfo(circleId, dave);
+        assertEq(defaults, 0);
     }
 }
