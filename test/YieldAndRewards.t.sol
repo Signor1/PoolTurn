@@ -141,7 +141,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             true, // enable yield
-            0
+            0,
+            1 hours // grace period
         );
     }
 
@@ -170,7 +171,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false, // no yield
-            CREATOR_REWARD
+            CREATOR_REWARD,
+            1 hours // grace period
         );
 
         assertEq(poolturn.getCreatorRewardPool(circleId), CREATOR_REWARD);
@@ -193,7 +195,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             true, // enable yield
-            CREATOR_REWARD // with creator reward
+            CREATOR_REWARD, // with creator reward
+            1 hours // grace period
         );
 
         assertTrue(poolturn.isYieldEnabled(circleId));
@@ -220,7 +223,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD,
+            1 hours // grace period
         );
 
         // Join circle with 4 members
@@ -272,7 +276,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD,
+            1 hours // grace period
         );
 
         // Join circle
@@ -288,7 +293,7 @@ contract YieldAndRewardsTest is Test {
         contributeWithApproval(circleId, dave);
 
         // Advance time and finalize
-        vm.warp(block.timestamp + PERIOD_DURATION + 1);
+        vm.warp(block.timestamp + PERIOD_DURATION + 1 hours + 1);
         poolturn.finalizeRoundIfExpired(circleId);
 
         // Complete remaining rounds with everyone paying
@@ -330,7 +335,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD,
+            1 hours // grace period
         );
 
         joinCircleWithApproval(circleId, alice);
@@ -370,7 +376,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD,
+            1 hours // grace period
         );
 
         joinCircleWithApproval(circleId, alice);
@@ -399,7 +406,8 @@ contract YieldAndRewardsTest is Test {
             INSURANCE_FEE,
             emptyOrder,
             false,
-            CREATOR_REWARD
+            CREATOR_REWARD,
+            1 hours // grace period
         );
 
         joinCircleWithApproval(circleId, alice);
@@ -415,7 +423,7 @@ contract YieldAndRewardsTest is Test {
         contributeWithApproval(circleId, carol);
         contributeWithApproval(circleId, dave);
 
-        vm.warp(block.timestamp + PERIOD_DURATION + 1);
+        vm.warp(block.timestamp + PERIOD_DURATION + 1 hours + 1);
         poolturn.finalizeRoundIfExpired(circleId);
 
         // Now only 3 eligible

@@ -27,6 +27,7 @@ export const useCreateCircle = () => {
         initialPayoutOrder: `0x${string}`[];
         enableYield?: boolean;
         creatorRewardAmount?: bigint;
+        gracePeriod?: bigint;
     }) => {
         try {
             writeContract({
@@ -45,6 +46,7 @@ export const useCreateCircle = () => {
                     params.initialPayoutOrder,
                     params.enableYield ?? false,
                     params.creatorRewardAmount ?? BigInt(0),
+                    params.gracePeriod ?? BigInt(60 * 60), // Default 1 hour
                 ],
             });
         } catch (error: any) {
