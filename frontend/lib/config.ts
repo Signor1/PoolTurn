@@ -9,6 +9,10 @@ export const config = {
 export const POOLTURN_CONTRACT_ADDRESS = process.env
   .NEXT_PUBLIC_POOLTURN_CONTRACT_ADDRESS as `0x${string}`; // actual deployed address
 
+// YieldManager Contract Address
+export const YIELDMANAGER_CONTRACT_ADDRESS = process.env
+  .NEXT_PUBLIC_YIELDMANAGER_CONTRACT_ADDRESS as `0x${string}`;
+
 // Multicall3 Contract Address
 export const MULTICALL3_ADDRESS = process.env
   .NEXT_PUBLIC_MULTICALL3_ADDRESS as `0x${string}`;
@@ -67,4 +71,6 @@ export const DEFAULT_CIRCLE_VALUES = {
   collateralFactor: 2,
   insuranceFee: "5",
   token: SUPPORTED_TOKENS.USDC.address,
+  enableYield: false,
+  creatorRewardAmount: "0",
 } as const;
