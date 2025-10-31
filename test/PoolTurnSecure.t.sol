@@ -601,7 +601,7 @@ contract PoolTurnSecureTest is Test {
         joinCircleWithApproval(circleId, carol);
         joinCircleWithApproval(circleId, dave);
 
-        (,,,,,,, uint256 startTimestamp,,, ) = poolturn.getCircleInfo(circleId);
+        (,,,,,,, uint256 startTimestamp,,,) = poolturn.getCircleInfo(circleId);
 
         // Simulate 3 rounds where dave defaults each time
         for (uint256 round = 1; round <= 3; round++) {

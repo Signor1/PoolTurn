@@ -436,7 +436,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
         for (uint256 i = 0; i < memsLen;) {
             memberYieldShares[circleId][mems[i]] += sharePerMember;
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         emit YieldHarvestedForCircle(circleId, memberShare, sharePerMember);
@@ -485,9 +487,13 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
         for (uint256 i = 0; i < memsLen;) {
             if (members[circleId][mems[i]].defaults == 0) {
-                unchecked { perfectMembers++; }
+                unchecked {
+                    perfectMembers++;
+                }
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         require(perfectMembers > 0, "no perfect members");
@@ -517,7 +523,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         require(!r.settled, "already settled");
 
         address[] storage mems = membersList[circleId];
-        uint256 memsLen = mems.length;  // Cache length
+        uint256 memsLen = mems.length; // Cache length
         uint256 payers = 0;
         uint256 slashedTotal = 0;
 
@@ -528,8 +534,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
                 r.defaulted[maddr] = true;
 
                 Member storage mm = members[circleId][maddr];
-                uint256 slash = mm.collateralLocked >= c.contributionAmount ?
-                    c.contributionAmount : mm.collateralLocked;
+                uint256 slash = mm.collateralLocked >= c.contributionAmount ? c.contributionAmount : mm.collateralLocked;
 
                 if (slash > 0) {
                     mm.collateralLocked -= slash;
@@ -552,10 +557,14 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
                     emit MemberGloballyBanned(maddr, globalDefaults[maddr]);
                 }
             } else {
-                unchecked { payers++; }  // Safe unchecked increment
+                unchecked {
+                    payers++;
+                } // Safe unchecked increment
             }
 
-            unchecked { ++i; }  // Safe unchecked increment
+            unchecked {
+                ++i;
+            } // Safe unchecked increment
         }
 
         // Pot is contributions from payers plus slashed collateral
@@ -589,7 +598,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         emit WinnerSelected(circleId, roundId, winner, pot);
 
         // Advance round or complete
-        unchecked { c.currentRound += 1; }  // Safe unchecked increment
+        unchecked {
+            c.currentRound += 1;
+        } // Safe unchecked increment
 
         if (c.currentRound > c.maxMembers) {
             c.state = CircleState.Completed;
@@ -626,7 +637,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         emit WinnerSelected(circleId, roundId, winner, pot);
 
         // next round
-        unchecked { c.currentRound += 1; }  // Safe unchecked increment
+        unchecked {
+            c.currentRound += 1;
+        } // Safe unchecked increment
 
         if (c.currentRound > c.maxMembers) {
             c.state = CircleState.Completed;
@@ -656,11 +669,15 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             // Check against previously seen addresses only (more efficient than nested comparison)
             for (uint256 j = 0; j < i;) {
                 require(seen[j] != current, "duplicate address in payout order");
-                unchecked { ++j; }
+                unchecked {
+                    ++j;
+                }
             }
 
             seen[i] = current;
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -670,34 +687,47 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * first-joiner advantage and simple manipulation.
      * For production, consider Chainlink VRF for true randomness.
      */
-    function _shuffleMembers(address[] storage memberList, uint256 circleId)
-        private
-        view
-        returns (address[] memory)
-    {
+    function _shuffleMembers(address[] storage memberList, uint256 circleId) private view returns (address[] memory) {
         uint256 len = memberList.length;
         address[] memory shuffled = new address[](len);
 
         // Copy to memory
         for (uint256 i = 0; i < len;) {
             shuffled[i] = memberList[i];
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         // Fisher-Yates shuffle with pseudo-random seed
-        bytes32 seed = keccak256(abi.encodePacked(
-            block.timestamp,
-            block.prevrandao,  // replaces difficulty in post-merge Ethereum
-            block.number,
-            circleId,
-            len
-        ));
+        // bytes32 seed = keccak256(abi.encodePacked(
+        //     block.timestamp,
+        //     block.prevrandao,  // replaces difficulty in post-merge Ethereum
+        //     block.number,
+        //     circleId,
+        //     len
+        // ));
+
+        // Inline assembly keccak256 (more efficient than abi.encodePacked)
+        bytes32 seed;
+        assembly {
+            // Get free memory pointer
+            let ptr := mload(0x40)
+            mstore(ptr, timestamp())
+            mstore(add(ptr, 0x20), prevrandao())
+            mstore(add(ptr, 0x40), number())
+            mstore(add(ptr, 0x60), circleId)
+            mstore(add(ptr, 0x80), len)
+            seed := keccak256(ptr, 0xa0) // hash 5 * 32 bytes
+        }
 
         for (uint256 i = len - 1; i > 0;) {
             uint256 j = uint256(seed) % (i + 1);
             (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
             seed = keccak256(abi.encodePacked(seed, i));
-            unchecked { --i; }
+            unchecked {
+                --i;
+            }
         }
 
         return shuffled;
@@ -747,17 +777,19 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         Circle storage c = circles[circleId];
         require(c.state == CircleState.Cancelled, "circle not cancelled");
         require(to != address(0), "zero recipient");
-        require(to != address(this), "cannot withdraw to self");  // L-02 fix
+        require(to != address(this), "cannot withdraw to self"); // L-02 fix
 
         // ensure no pending payouts remain
         // (Note: We conservatively check that total pending payouts are zero to avoid stealing user funds.)
         uint256 totalPending = 0;
         address[] storage mems = membersList[circleId];
-        uint256 memsLen = mems.length;  // Cache length
+        uint256 memsLen = mems.length; // Cache length
 
         for (uint256 i = 0; i < memsLen;) {
             totalPending += pendingPayouts[circleId][mems[i]];
-            unchecked { ++i; } 
+            unchecked {
+                ++i;
+            }
         }
         require(totalPending == 0, "pending payouts exist");
 
@@ -777,7 +809,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
         // refund any joined members their locked sums
         address[] storage mems = membersList[circleId];
-        uint256 memsLen = mems.length;  // Cache length
+        uint256 memsLen = mems.length; // Cache length
 
         for (uint256 i = 0; i < memsLen;) {
             address maddr = mems[i];
@@ -790,7 +822,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
                 c.token.safeTransfer(maddr, refund);
             }
 
-            unchecked { ++i; } 
+            unchecked {
+                ++i;
+            }
         }
 
         // Reset insurance pool to maintain accounting consistency
@@ -854,11 +888,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * @param offset Starting circle ID (inclusive)
      * @param limit Maximum number of circles to return (max 100)
      */
-    function getCircles(uint256 offset, uint256 limit)
-        external
-        view
-        returns (Circle[] memory circles_)
-    {
+    function getCircles(uint256 offset, uint256 limit) external view returns (Circle[] memory circles_) {
         require(limit > 0 && limit <= 100, "limit must be 1-100");
         require(offset > 0, "offset must be >= 1");
 
@@ -874,7 +904,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
         for (uint256 i = 0; i < resultSize;) {
             circles_[i] = circles[start + i];
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -990,9 +1022,13 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
         for (uint256 i = 0; i < memsLen;) {
             if (members[circleId][mems[i]].defaults == 0) {
-                unchecked { count++; }
+                unchecked {
+                    count++;
+                }
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         return count;
