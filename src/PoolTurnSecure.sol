@@ -678,13 +678,26 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         }
 
         // Fisher-Yates shuffle with pseudo-random seed
-        bytes32 seed = keccak256(abi.encodePacked(
-            block.timestamp,
-            block.prevrandao,  // replaces difficulty in post-merge Ethereum
-            block.number,
-            circleId,
-            len
-        ));
+        // bytes32 seed = keccak256(abi.encodePacked(
+        //     block.timestamp,
+        //     block.prevrandao,  // replaces difficulty in post-merge Ethereum
+        //     block.number,
+        //     circleId,
+        //     len
+        // ));
+
+        // Inline assembly keccak256 (more efficient than abi.encodePacked)
+    bytes32 seed;
+    assembly {
+        // Get free memory pointer
+        let ptr := mload(0x40)
+        mstore(ptr, timestamp())
+        mstore(add(ptr, 0x20), prevrandao())
+        mstore(add(ptr, 0x40), number())
+        mstore(add(ptr, 0x60), circleId)
+        mstore(add(ptr, 0x80), len)
+        seed := keccak256(ptr, 0xa0) // hash 5 * 32 bytes
+    }
 
         for (uint256 i = len - 1; i > 0;) {
             uint256 j = uint256(seed) % (i + 1);
