@@ -204,19 +204,23 @@ For complete documentation and usage examples, see [YIELD_AND_REWARDS.md](./YIEL
 ### 📋 Deployed Contracts
 
 **PoolTurnSecure Main Contract**
-- Address: [0x0530776AF89fEBb03933fa27613Fc6C7446a1b10](https://basescan.org/address/0x0530776AF89fEBb03933fa27613Fc6C7446a1b10)
+- Address: [0x004f88686b1579d4c1f8c6e25123c07c09fc6e40](https://basescan.org/address/0x004f88686b1579d4c1f8c6e25123c07c09fc6e40)
 - Description: Main PoolTurn smart contract handling circle creation, member management, and payout distribution
+
+**YieldManager Contract**
+- Address: [0xd8ac827078057763bb5425fe9b5069d38be1bea8](https://basescan.org/address/0xd8ac827078057763bb5425fe9b5069d38be1bea8)
+- Description: Manages yield generation for insurance pool funds via Aave V3
 
 **Multicall3 Contract**
 - Address: [0xcA11bde05977b3631167028862bE2a173976CA11](https://basescan.org/address/0xcA11bde05977b3631167028862bE2a173976CA11)
 - Description: Efficient batch contract calls for fetching multiple circle data
 
 **USDC Mock Token**
-- Address: [0x6b54e6ec75eEb7c6cD1889cD3cBB858E6734471D](https://basescan.org/address/0x6b54e6ec75eEb7c6cD1889cD3cBB858E6734471D)
+- Address: [0x76e438A08C3518c53E02109779A89D0cf0Ed7924](https://basescan.org/address/0x76e438A08C3518c53E02109779A89D0cf0Ed7924)
 - Description: Mock USDC token deployed for this project (6 decimals)
 
 **USDT Mock Token**
-- Address: [0x6c925BE58927c5eD7f907a8126BC6F733F87c3B0](https://basescan.org/address/0x6c925BE58927c5eD7f907a8126BC6F733F87c3B0)
+- Address: [0xe316ceaa769402b9fb8a036e513d933295592cc8](https://basescan.org/address/0xe316ceaa769402b9fb8a036e513d933295592cc8)
 - Description: Mock USDT token deployed for this project (6 decimals)
 
 
