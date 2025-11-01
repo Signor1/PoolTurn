@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import { Test } from "forge-std/Test.sol";
 import { PoolTurnSecure } from "../src/PoolTurnSecure.sol";
+import { PoolTurnTypes } from "../src/types/PoolTurnTypes.sol";
 import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract PoolTurnSecureTest is Test {
@@ -128,7 +129,7 @@ contract PoolTurnSecureTest is Test {
             uint256 startTimestamp,
             uint256 currentRound,
             uint256 roundStart,
-            PoolTurnSecure.CircleState state
+            PoolTurnTypes.CircleState state
         ) = poolturn.getCircleInfo(circleId);
 
         assertEq(creator, owner);
@@ -141,7 +142,7 @@ contract PoolTurnSecureTest is Test {
         assertEq(startTimestamp, 0); // Not started yet
         assertEq(currentRound, 0); // Not started yet
         assertEq(roundStart, 0); // Not started yet
-        assertTrue(state == PoolTurnSecure.CircleState.Open);
+        assertTrue(state == PoolTurnTypes.CircleState.Open);
 
         (string memory name, string memory desc) = poolturn.getCircleDetails(circleId);
 
@@ -342,10 +343,10 @@ contract PoolTurnSecureTest is Test {
         vm.stopPrank();
 
         // Verify circle is now active
-        (,,,,,,,, uint256 startTimestamp, uint256 currentRound,, PoolTurnSecure.CircleState state) =
+        (,,,,,,,, uint256 startTimestamp, uint256 currentRound,, PoolTurnTypes.CircleState state) =
             poolturn.getCircleInfo(circleId);
 
-        assertTrue(state == PoolTurnSecure.CircleState.Active);
+        assertTrue(state == PoolTurnTypes.CircleState.Active);
         assertEq(startTimestamp, block.timestamp);
         assertEq(currentRound, 1);
 
@@ -399,8 +400,8 @@ contract PoolTurnSecureTest is Test {
         joinCircleWithApproval(circleId, dave); // This should activate, not fail
 
         // Verify circle is now active (not full rejection)
-        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
-        assertTrue(state == PoolTurnSecure.CircleState.Active);
+        (,,,,,,,,,,, PoolTurnTypes.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnTypes.CircleState.Active);
     }
 
     function testJoinCircleFailsWhenAlreadyJoined() public {
@@ -661,8 +662,8 @@ contract PoolTurnSecureTest is Test {
         }
 
         // Verify circle is completed
-        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
-        assertTrue(state == PoolTurnSecure.CircleState.Completed);
+        (,,,,,,,,,,, PoolTurnTypes.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnTypes.CircleState.Completed);
 
         // Withdraw collateral
         uint256 aliceBalanceBefore = token.balanceOf(alice);
@@ -782,8 +783,8 @@ contract PoolTurnSecureTest is Test {
         poolturn.cancelCircle(circleId);
 
         // Verify circle is cancelled
-        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
-        assertTrue(state == PoolTurnSecure.CircleState.Cancelled);
+        (,,,,,,,,,,, PoolTurnTypes.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnTypes.CircleState.Cancelled);
 
         // Verify members got refunds (collateral + insurance should be returned)
         // Note: This is hard to verify without checking balances, but we trust the implementation
@@ -853,8 +854,8 @@ contract PoolTurnSecureTest is Test {
         contributeWithApproval(circleId, dave); // This should trigger completion
 
         // Verify circle is completed
-        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
-        assertTrue(state == PoolTurnSecure.CircleState.Completed);
+        (,,,,,,,,,,, PoolTurnTypes.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertTrue(state == PoolTurnTypes.CircleState.Completed);
     }
 
     function testInsurancePoolUsedWhenNeeded() public {
@@ -975,7 +976,7 @@ contract PoolTurnSecureTest is Test {
             ,
             ,
             ,
-            PoolTurnSecure.CircleState state
+            PoolTurnTypes.CircleState state
         ) = poolturn.getCircleInfo(circleId);
 
         assertEq(storedContribution, contributionAmount);
@@ -983,7 +984,7 @@ contract PoolTurnSecureTest is Test {
         assertEq(storedMaxMembers, maxMembers);
         assertEq(storedCollateralFactor, collateralFactor);
         assertEq(storedInsuranceFee, insuranceFee);
-        assertTrue(state == PoolTurnSecure.CircleState.Open);
+        assertTrue(state == PoolTurnTypes.CircleState.Open);
     }
 
     // ================================
