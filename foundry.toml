@@ -18,4 +18,4 @@ multiline_func_header = "all"
 base = "${BASE_MAINNET_RPC_URL}"
 
 [etherscan]
-base = { key = "${BASESCAN_API_KEY}", url = "[https://api.basescan.org/api](https://api.basescan.org/api)" }
+base = { key = "${ETHERSCAN_API_KEY}" }

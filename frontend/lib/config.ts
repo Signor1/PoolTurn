@@ -21,13 +21,13 @@ export const MULTICALL3_ADDRESS = process.env
 // Note: These are mock tokens deployed specifically for this project
 export const SUPPORTED_TOKENS = {
   USDC: {
-    address: (process.env.NEXT_PUBLIC_USDC_ADDRESS || "0x6b54e6ec75eEb7c6cD1889cD3cBB858E6734471D") as `0x${string}`,
+    address: (process.env.NEXT_PUBLIC_USDC_ADDRESS || "0x76e438A08C3518c53E02109779A89D0cf0Ed7924") as `0x${string}`,
     decimals: 6,
     symbol: "USDC",
     name: "USDC Token",
   },
   USDT: {
-    address: (process.env.NEXT_PUBLIC_USDT_ADDRESS || "0x6c925BE58927c5eD7f907a8126BC6F733F87c3B0") as `0x${string}`,
+    address: (process.env.NEXT_PUBLIC_USDT_ADDRESS || "0xe316ceaa769402b9fb8a036e513d933295592cc8") as `0x${string}`,
     decimals: 6,
     symbol: "USDT",
     name: "USDT Token",
