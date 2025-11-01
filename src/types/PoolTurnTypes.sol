@@ -19,6 +19,7 @@ library PoolTurnTypes {
         uint256 maxMembers; // N
         uint256 collateralFactor; // CF (1 == 1x contribution)
         uint256 insuranceFee; // per-member fee added to insurance pool at join
+        uint256 gracePeriod; // extra time after period before default (in seconds)
         uint256 startTimestamp; // filled when circle becomes Active
         uint256 currentRound; // 1..N
         uint256 roundStart; // timestamp of current round

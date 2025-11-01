@@ -18,132 +18,13 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { YieldManager } from "./YieldManager.sol";
+import { PoolTurnTypes } from "./types/PoolTurnTypes.sol";
+import { PoolTurnConstants } from "./constants/PoolTurnConstants.sol";
+import { PoolTurnEvent } from "./events/PoolTurnEvent.sol";
+import { PoolTurn } from "./states/PoolTurnState.sol";
 
-contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
+contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
-
-    // --- Constants ---
-    uint256 public constant MAX_MEMBERS = 100; // safety cap to prevent gas bombs
-    uint256 public constant DEFAULT_BAN_THRESHOLD = 3; // defaults before ban
-    uint256 public constant MIN_PERIOD_SECONDS = 3 minutes;
-    uint256 public constant MIN_GRACE_PERIOD = 1 hours; // minimum grace period
-    uint256 public constant MAX_GRACE_PERIOD = 7 days; // maximum grace period
-
-    // --- Types ---
-    enum CircleState {
-        Open,
-        Active,
-        Completed,
-        Cancelled
-    }
-
-    struct Circle {
-        address creator;
-        IERC20 token; // ERC20 token used for contributions (stablecoin recommended)
-        uint256 contributionAmount; // A
-        uint256 periodDuration; // seconds per round
-        uint256 maxMembers; // N
-        uint256 collateralFactor; // CF (1 == 1x contribution)
-        uint256 insuranceFee; // per-member fee added to insurance pool at join
-        uint256 gracePeriod; // extra time after period before default (in seconds)
-        uint256 startTimestamp; // filled when circle becomes Active
-        uint256 currentRound; // 1..N
-        uint256 roundStart; // timestamp of current round
-        CircleState state;
-        bool rotationLocked; // if true, payoutOrder cannot be changed
-    }
-
-    struct Member {
-        bool exists;
-        bool banned; // if true, cannot join new circles
-        bool withdrawnCollateral; // whether collateral returned after completion
-        uint8 defaults; // number of defaults (for reputation/ban) - max 255
-        uint256 collateralLocked; // amount locked as collateral
-        uint256 insuranceContributed;
-    }
-
-    struct RoundState {
-        uint256 depositsMade; // number of members who deposited this round
-        mapping(address => bool) deposited; // member => whether deposited this round
-        mapping(address => bool) defaulted; // member => defaulted this round
-        address winner; // winner for the round
-        bool settled;
-    }
-
-    struct CircleDetails {
-        string name;
-        string desc;
-    }
-
-    // --- State ---
-
-    uint256 public nextCircleId = 1;
-    mapping(uint256 => Circle) public circles;
-
-    // members list per circle
-    mapping(uint256 => address[]) private membersList;
-
-    // member info per circle
-    mapping(uint256 => mapping(address => Member)) public members;
-
-    // round states per circle
-    mapping(uint256 => mapping(uint256 => RoundState)) private roundStates;
-
-    // payout order per circle (rotation). Fixed size = maxMembers
-    mapping(uint256 => address[]) private payoutOrder;
-
-    // insurance pool balances per circle (slashed fees + insurance fees go here)
-    mapping(uint256 => uint256) public insurancePool;
-
-    // winner payouts credited (pull model). token amounts credited per address per circle
-    mapping(uint256 => mapping(address => uint256)) public pendingPayouts;
-
-    mapping(uint256 => CircleDetails) public circleDetails;
-
-    // Global ban tracking
-    mapping(address => bool) public globallyBanned;
-    mapping(address => uint256) public globalDefaults;
-
-    // --- Yield & Rewards State ---
-
-    // YieldManager contract for generating yield on insurance pool
-    YieldManager public yieldManager;
-
-    // Creator reward pool per circle (optional bonus for members with perfect payment)
-    mapping(uint256 => uint256) public creatorRewardPool;
-
-    // Track member yield shares (accumulated from insurance pool yield)
-    mapping(uint256 => mapping(address => uint256)) public memberYieldShares;
-
-    // Track if yield generation is enabled per circle
-    mapping(uint256 => bool) public yieldGenerationEnabled;
-
-    // Track if member has claimed creator reward
-    mapping(uint256 => mapping(address => bool)) public creatorRewardClaimed;
-
-    // events
-    event CircleCreated(uint256 indexed circleId, address indexed creator);
-    event MemberJoined(
-        uint256 indexed circleId, address indexed member, uint256 collateralLocked, uint256 insuranceFee
-    );
-    event RoundStarted(uint256 indexed circleId, uint256 indexed roundId, uint256 startedAt);
-    event ContributionMade(uint256 indexed circleId, uint256 indexed roundId, address indexed member, uint256 amount);
-    event DefaultDetected(uint256 indexed circleId, uint256 indexed roundId, address indexed member, uint256 slashed);
-    event WinnerSelected(uint256 indexed circleId, uint256 indexed roundId, address indexed winner, uint256 pot);
-    event PayoutClaimed(uint256 indexed circleId, address indexed claimer, uint256 amount);
-    event CollateralWithdrawn(uint256 indexed circleId, address indexed member, uint256 amount);
-    event CircleCompleted(uint256 indexed circleId);
-    event MemberBanned(uint256 indexed circleId, address indexed member);
-    event MemberGloballyBanned(address indexed member, uint256 totalDefaults);
-    event EmergencyWithdraw(uint256 indexed circleId, address indexed to, uint256 amount);
-    event PayoutOrderSet(uint256 indexed circleId, address[] payoutOrder);
-    event CircleCancelled(uint256 indexed circleId);
-    event YieldManagerSet(address indexed yieldManager);
-    event YieldGenerationToggled(uint256 indexed circleId, bool enabled);
-    event YieldHarvestedForCircle(uint256 indexed circleId, uint256 totalYield, uint256 memberShare);
-    event MemberYieldClaimed(uint256 indexed circleId, address indexed member, uint256 amount);
-    event CreatorRewardDeposited(uint256 indexed circleId, address indexed creator, uint256 amount);
-    event CreatorRewardClaimed(uint256 indexed circleId, address indexed member, uint256 amount);
 
     // --- Modifiers ---
     modifier circleExists(uint256 circleId) {
@@ -152,7 +33,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     }
 
     modifier onlyActive(uint256 circleId) {
-        require(circles[circleId].state == CircleState.Active, "circle not active");
+        require(circles[circleId].state == PoolTurnTypes.CircleState.Active, "circle not active");
         _;
     }
 
@@ -189,18 +70,18 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         require(token != address(0), "token zero");
         require(token.code.length > 0, "not a contract");
         require(contributionAmount > 0, "contrib zero");
-        require(periodDuration >= MIN_PERIOD_SECONDS, "period too short");
-        require(maxMembers >= 2 && maxMembers <= MAX_MEMBERS, "invalid members");
+        require(periodDuration >= PoolTurnConstants.MIN_PERIOD_SECONDS, "period too short");
+        require(maxMembers >= 2 && maxMembers <= PoolTurnConstants.MAX_MEMBERS, "invalid members");
         require(collateralFactor >= 1, "collateralFactor < 1");
-        require(gracePeriod >= MIN_GRACE_PERIOD && gracePeriod <= MAX_GRACE_PERIOD, "invalid grace period");
+        require(gracePeriod >= PoolTurnConstants.MIN_GRACE_PERIOD && gracePeriod <= PoolTurnConstants.MAX_GRACE_PERIOD, "invalid grace period");
 
         uint256 circleId = nextCircleId++;
 
-        CircleDetails storage details = circleDetails[circleId];
+        PoolTurnTypes.CircleDetails storage details = circleDetails[circleId];
         details.name = _name;
         details.desc = _desc;
 
-        Circle storage c = circles[circleId];
+        PoolTurnTypes.Circle storage c = circles[circleId];
         c.creator = msg.sender;
         c.token = IERC20(token);
         c.contributionAmount = contributionAmount;
@@ -212,7 +93,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         require(insuranceFee <= contributionAmount, "insurance fee too high");
         c.insuranceFee = insuranceFee;
         c.gracePeriod = gracePeriod;
-        c.state = CircleState.Open;
+        c.state = PoolTurnTypes.CircleState.Open;
 
         // if initial payoutOrder provided, validate and lock it
         if (initialPayoutOrder.length > 0) {
@@ -220,7 +101,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             _validatePayoutOrder(initialPayoutOrder);
             payoutOrder[circleId] = initialPayoutOrder;
             c.rotationLocked = true;
-            emit PayoutOrderSet(circleId, initialPayoutOrder);
+            emit PoolTurnEvent.PayoutOrderSet(circleId, initialPayoutOrder);
         }
 
         // Enable yield generation if requested and YieldManager is set
@@ -228,17 +109,17 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             require(address(yieldManager) != address(0), "YieldManager not set");
             yieldGenerationEnabled[circleId] = true;
             yieldManager.setYieldEnabled(circleId, true);
-            emit YieldGenerationToggled(circleId, true);
+            emit PoolTurnEvent.YieldGenerationToggled(circleId, true);
         }
 
         // Handle creator reward pool deposit if provided
         if (creatorRewardAmount > 0) {
             c.token.safeTransferFrom(msg.sender, address(this), creatorRewardAmount);
             creatorRewardPool[circleId] = creatorRewardAmount;
-            emit CreatorRewardDeposited(circleId, msg.sender, creatorRewardAmount);
+            emit PoolTurnEvent.CreatorRewardDeposited(circleId, msg.sender, creatorRewardAmount);
         }
 
-        emit CircleCreated(circleId, msg.sender);
+        emit PoolTurnEvent.CircleCreated(circleId, msg.sender);
         return circleId;
     }
 
@@ -248,15 +129,15 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      *   totalLock = contributionAmount * collateralFactor + insuranceFee
      */
     function joinCircle(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
-        Circle storage c = circles[circleId];
-        require(c.state == CircleState.Open, "not open");
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        require(c.state == PoolTurnTypes.CircleState.Open, "not open");
         require(membersList[circleId].length < c.maxMembers, "full");
         require(!members[circleId][msg.sender].exists, "already joined");
 
         // Check global ban status
         require(!globallyBanned[msg.sender], "globally banned");
 
-        Member storage m = members[circleId][msg.sender];
+        PoolTurnTypes.Member storage m = members[circleId][msg.sender];
         require(!m.banned, "member banned");
 
         uint256 collateral = c.contributionAmount * c.collateralFactor;
@@ -286,11 +167,11 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             insurancePool[circleId] += c.insuranceFee;
         }
 
-        emit MemberJoined(circleId, msg.sender, collateral, c.insuranceFee);
+        emit PoolTurnEvent.MemberJoined(circleId, msg.sender, collateral, c.insuranceFee);
 
         // If circle is full after this join, activate and set timestamps
         if (membersList[circleId].length == c.maxMembers) {
-            c.state = CircleState.Active;
+            c.state = PoolTurnTypes.CircleState.Active;
             c.currentRound = 1;
             c.startTimestamp = block.timestamp;
             c.roundStart = block.timestamp;
@@ -305,7 +186,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
                     payoutOrder[circleId].push(shuffled[i]);
                 }
                 c.rotationLocked = true; // lock to avoid changes
-                emit PayoutOrderSet(circleId, payoutOrder[circleId]);
+                emit PoolTurnEvent.PayoutOrderSet(circleId, payoutOrder[circleId]);
             }
 
             // Deposit insurance pool to yield manager if enabled
@@ -319,7 +200,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
                 }
             }
 
-            emit RoundStarted(circleId, c.currentRound, c.roundStart);
+            emit PoolTurnEvent.RoundStarted(circleId, c.currentRound, c.roundStart);
         }
     }
 
@@ -334,12 +215,12 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         circleExists(circleId)
         onlyActive(circleId)
     {
-        Circle storage c = circles[circleId];
-        Member storage m = members[circleId][msg.sender];
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        PoolTurnTypes.Member storage m = members[circleId][msg.sender];
         require(m.exists, "not a member");
 
         uint256 roundId = c.currentRound;
-        RoundState storage r = roundStates[circleId][roundId];
+        PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
         require(!r.deposited[msg.sender], "already paid");
 
         // pull tokens
@@ -352,7 +233,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         r.deposited[msg.sender] = true;
         r.depositsMade += 1;
 
-        emit ContributionMade(circleId, roundId, msg.sender, c.contributionAmount);
+        emit PoolTurnEvent.ContributionMade(circleId, roundId, msg.sender, c.contributionAmount);
 
         // if everyone paid, finalize immediately
         if (r.depositsMade == c.maxMembers) {
@@ -372,9 +253,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         circleExists(circleId)
         onlyActive(circleId)
     {
-        Circle storage c = circles[circleId];
+        PoolTurnTypes.Circle storage c = circles[circleId];
         uint256 roundId = c.currentRound;
-        RoundState storage r = roundStates[circleId][roundId];
+        PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
         require(!r.settled, "already settled");
         require(block.timestamp >= c.roundStart + c.periodDuration + c.gracePeriod, "grace period active");
 
@@ -388,9 +269,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         uint256 amount = pendingPayouts[circleId][msg.sender];
         require(amount > 0, "no payout");
         pendingPayouts[circleId][msg.sender] = 0;
-        Circle storage c = circles[circleId];
+        PoolTurnTypes.Circle storage c = circles[circleId];
         c.token.safeTransfer(msg.sender, amount);
-        emit PayoutClaimed(circleId, msg.sender, amount);
+        emit PoolTurnEvent.PayoutClaimed(circleId, msg.sender, amount);
     }
 
     /**
@@ -398,9 +279,9 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * Collateral is returned pro-rata based on remaining collateralLocked.
      */
     function withdrawCollateral(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
-        Circle storage c = circles[circleId];
-        require(c.state == CircleState.Completed || c.state == CircleState.Cancelled, "circle not finished");
-        Member storage m = members[circleId][msg.sender];
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        require(c.state == PoolTurnTypes.CircleState.Completed || c.state == PoolTurnTypes.CircleState.Cancelled, "circle not finished");
+        PoolTurnTypes.Member storage m = members[circleId][msg.sender];
         require(m.exists, "not member");
         require(!m.withdrawnCollateral, "already withdrawn");
 
@@ -411,7 +292,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         if (amount > 0) {
             c.token.safeTransfer(msg.sender, amount);
         }
-        emit CollateralWithdrawn(circleId, msg.sender, amount);
+        emit PoolTurnEvent.CollateralWithdrawn(circleId, msg.sender, amount);
     }
 
     /**
@@ -441,7 +322,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             }
         }
 
-        emit YieldHarvestedForCircle(circleId, memberShare, sharePerMember);
+        emit PoolTurnEvent.YieldHarvestedForCircle(circleId, memberShare, sharePerMember);
     }
 
     /**
@@ -454,14 +335,14 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
         memberYieldShares[circleId][msg.sender] = 0;
 
-        Circle storage c = circles[circleId];
+        PoolTurnTypes.Circle storage c = circles[circleId];
 
         // Withdraw yield from YieldManager if needed
         if (address(yieldManager) != address(0)) {
             yieldManager.withdrawFromYield(circleId, address(c.token), yieldAmount, msg.sender);
         }
 
-        emit MemberYieldClaimed(circleId, msg.sender, yieldAmount);
+        emit PoolTurnEvent.MemberYieldClaimed(circleId, msg.sender, yieldAmount);
     }
 
     /**
@@ -469,10 +350,10 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * @param circleId The circle ID
      */
     function claimCreatorReward(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
-        Circle storage c = circles[circleId];
-        require(c.state == CircleState.Completed, "circle not completed");
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        require(c.state == PoolTurnTypes.CircleState.Completed, "circle not completed");
 
-        Member storage m = members[circleId][msg.sender];
+        PoolTurnTypes.Member storage m = members[circleId][msg.sender];
         require(m.exists, "not a member");
         require(m.defaults == 0, "has defaults, not eligible");
         require(!creatorRewardClaimed[circleId][msg.sender], "already claimed");
@@ -506,7 +387,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         creatorRewardPool[circleId] -= rewardPerMember;
 
         c.token.safeTransfer(msg.sender, rewardPerMember);
-        emit CreatorRewardClaimed(circleId, msg.sender, rewardPerMember);
+        emit PoolTurnEvent.CreatorRewardClaimed(circleId, msg.sender, rewardPerMember);
     }
 
     // --- Internal helpers ---
@@ -518,8 +399,8 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * Winner payout is credited to pendingPayouts for pull pattern.
      */
     function _handleDefaultsAndFinalize(uint256 circleId, uint256 roundId) internal {
-        Circle storage c = circles[circleId];
-        RoundState storage r = roundStates[circleId][roundId];
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
         require(!r.settled, "already settled");
 
         address[] storage mems = membersList[circleId];
@@ -533,13 +414,13 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             if (!r.deposited[maddr]) {
                 r.defaulted[maddr] = true;
 
-                Member storage mm = members[circleId][maddr];
+                PoolTurnTypes.Member storage mm = members[circleId][maddr];
                 uint256 slash = mm.collateralLocked >= c.contributionAmount ? c.contributionAmount : mm.collateralLocked;
 
                 if (slash > 0) {
                     mm.collateralLocked -= slash;
                     slashedTotal += slash;
-                    emit DefaultDetected(circleId, roundId, maddr, slash);
+                    emit PoolTurnEvent.DefaultDetected(circleId, roundId, maddr, slash);
                 }
 
                 // Global reputation tracking
@@ -547,14 +428,14 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
                 mm.defaults += 1;
 
                 // Ban both locally and globally if threshold exceeded
-                if (mm.defaults >= DEFAULT_BAN_THRESHOLD) {
+                if (mm.defaults >= PoolTurnConstants.DEFAULT_BAN_THRESHOLD) {
                     mm.banned = true;
-                    emit MemberBanned(circleId, maddr);
+                    emit PoolTurnEvent.MemberBanned(circleId, maddr);
                 }
 
-                if (globalDefaults[maddr] >= DEFAULT_BAN_THRESHOLD) {
+                if (globalDefaults[maddr] >= PoolTurnConstants.DEFAULT_BAN_THRESHOLD) {
                     globallyBanned[maddr] = true;
-                    emit MemberGloballyBanned(maddr, globalDefaults[maddr]);
+                    emit PoolTurnEvent.MemberGloballyBanned(maddr, globalDefaults[maddr]);
                 }
             } else {
                 unchecked {
@@ -595,7 +476,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         pendingPayouts[circleId][winner] += pot;
         r.settled = true;
 
-        emit WinnerSelected(circleId, roundId, winner, pot);
+        emit PoolTurnEvent.WinnerSelected(circleId, roundId, winner, pot);
 
         // Advance round or complete
         unchecked {
@@ -603,12 +484,12 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         } // Safe unchecked increment
 
         if (c.currentRound > c.maxMembers) {
-            c.state = CircleState.Completed;
-            emit CircleCompleted(circleId);
+            c.state = PoolTurnTypes.CircleState.Completed;
+            emit PoolTurnEvent.CircleCompleted(circleId);
         } else {
             // Use fixed schedule to prevent drift
             c.roundStart = c.startTimestamp + ((c.currentRound - 1) * c.periodDuration);
-            emit RoundStarted(circleId, c.currentRound, c.roundStart);
+            emit PoolTurnEvent.RoundStarted(circleId, c.currentRound, c.roundStart);
         }
     }
 
@@ -616,8 +497,8 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * Immediate finalization when all paid early
      */
     function _finalizeRound(uint256 circleId, uint256 roundId) internal {
-        Circle storage c = circles[circleId];
-        RoundState storage r = roundStates[circleId][roundId];
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
         require(!r.settled, "already settled");
 
         uint256 payers = r.depositsMade;
@@ -634,7 +515,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         r.settled = true;
         pendingPayouts[circleId][winner] += pot;
 
-        emit WinnerSelected(circleId, roundId, winner, pot);
+        emit PoolTurnEvent.WinnerSelected(circleId, roundId, winner, pot);
 
         // next round
         unchecked {
@@ -642,12 +523,12 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         } // Safe unchecked increment
 
         if (c.currentRound > c.maxMembers) {
-            c.state = CircleState.Completed;
-            emit CircleCompleted(circleId);
+            c.state = PoolTurnTypes.CircleState.Completed;
+            emit PoolTurnEvent.CircleCompleted(circleId);
         } else {
             // Use fixed schedule to prevent drift
             c.roundStart = c.startTimestamp + ((c.currentRound - 1) * c.periodDuration);
-            emit RoundStarted(circleId, c.currentRound, c.roundStart);
+            emit PoolTurnEvent.RoundStarted(circleId, c.currentRound, c.roundStart);
         }
     }
 
@@ -657,7 +538,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      */
     function _validatePayoutOrder(address[] calldata order) private pure {
         uint256 len = order.length;
-        require(len <= MAX_MEMBERS, "order exceeds MAX_MEMBERS");
+        require(len <= PoolTurnConstants.MAX_MEMBERS, "order exceeds MAX_MEMBERS");
 
         // Use memory array to track seen addresses for efficient duplicate detection
         address[] memory seen = new address[](len);
@@ -742,7 +623,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     function setYieldManager(address _yieldManager) external onlyOwner {
         require(_yieldManager != address(0), "zero address");
         yieldManager = YieldManager(_yieldManager);
-        emit YieldManagerSet(_yieldManager);
+        emit PoolTurnEvent.YieldManagerSet(_yieldManager);
     }
 
     /**
@@ -774,8 +655,8 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         circleExists(circleId)
         nonReentrant
     {
-        Circle storage c = circles[circleId];
-        require(c.state == CircleState.Cancelled, "circle not cancelled");
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        require(c.state == PoolTurnTypes.CircleState.Cancelled, "circle not cancelled");
         require(to != address(0), "zero recipient");
         require(to != address(this), "cannot withdraw to self"); // L-02 fix
 
@@ -797,15 +678,15 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         require(insurancePool[circleId] == 0, "insurance pool not empty");
 
         c.token.safeTransfer(to, amount);
-        emit EmergencyWithdraw(circleId, to, amount);
+        emit PoolTurnEvent.EmergencyWithdraw(circleId, to, amount);
     }
 
     /**
      * Owner can cancel a circle before it becomes active; refunds collateral and insurance
      */
     function cancelCircle(uint256 circleId) external circleExists(circleId) nonReentrant onlyOwner {
-        Circle storage c = circles[circleId];
-        require(c.state == CircleState.Open, "cannot cancel active/completed");
+        PoolTurnTypes.Circle storage c = circles[circleId];
+        require(c.state == PoolTurnTypes.CircleState.Open, "cannot cancel active/completed");
 
         // refund any joined members their locked sums
         address[] storage mems = membersList[circleId];
@@ -813,7 +694,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
 
         for (uint256 i = 0; i < memsLen;) {
             address maddr = mems[i];
-            Member storage mm = members[circleId][maddr];
+            PoolTurnTypes.Member storage mm = members[circleId][maddr];
             uint256 refund = mm.collateralLocked + mm.insuranceContributed;
             mm.collateralLocked = 0;
             mm.insuranceContributed = 0;
@@ -830,8 +711,8 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         // Reset insurance pool to maintain accounting consistency
         insurancePool[circleId] = 0;
 
-        c.state = CircleState.Cancelled;
-        emit CircleCancelled(circleId);
+        c.state = PoolTurnTypes.CircleState.Cancelled;
+        emit PoolTurnEvent.CircleCancelled(circleId);
     }
 
     // --- View helpers ---
@@ -859,10 +740,10 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             uint256 startTimestamp,
             uint256 currentRound,
             uint256 roundStart,
-            CircleState state
+            PoolTurnTypes.CircleState state
         )
     {
-        Circle storage c = circles[circleId];
+        PoolTurnTypes.Circle storage c = circles[circleId];
         creator = c.creator;
         tokenAddr = address(c.token);
         contributionAmount = c.contributionAmount;
@@ -878,7 +759,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
     }
 
     function getCircleDetails(uint256 circleId) external view returns (string memory name, string memory desc) {
-        CircleDetails storage details = circleDetails[circleId];
+        PoolTurnTypes.CircleDetails storage details = circleDetails[circleId];
         name = details.name;
         desc = details.desc;
     }
@@ -888,7 +769,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
      * @param offset Starting circle ID (inclusive)
      * @param limit Maximum number of circles to return (max 100)
      */
-    function getCircles(uint256 offset, uint256 limit) external view returns (Circle[] memory circles_) {
+    function getCircles(uint256 offset, uint256 limit) external view returns (PoolTurnTypes.Circle[] memory circles_) {
         require(limit > 0 && limit <= 100, "limit must be 1-100");
         require(offset > 0, "offset must be >= 1");
 
@@ -900,7 +781,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
         }
 
         uint256 resultSize = end > start ? end - start : 0;
-        circles_ = new Circle[](resultSize);
+        circles_ = new PoolTurnTypes.Circle[](resultSize);
 
         for (uint256 i = 0; i < resultSize;) {
             circles_[i] = circles[start + i];
@@ -933,7 +814,7 @@ contract PoolTurnSecure is ReentrancyGuard, Pausable, Ownable {
             bool withdrawnCollateral
         )
     {
-        Member storage m = members[circleId][member];
+        PoolTurnTypes.Member storage m = members[circleId][member];
         exists = m.exists;
         collateralLocked = m.collateralLocked;
         insuranceContributed = m.insuranceContributed;

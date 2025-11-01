@@ -9,16 +9,16 @@ abstract contract PoolTurn {
     mapping(uint256 => PoolTurnTypes.Circle) public circles;
 
     // members list per circle
-    mapping(uint256 => address[]) private membersList;
+    mapping(uint256 => address[]) internal membersList;
 
     // member info per circle
     mapping(uint256 => mapping(address => PoolTurnTypes.Member)) public members;
 
     // round states per circle
-    mapping(uint256 => mapping(uint256 => PoolTurnTypes.RoundState)) private roundStates;
+    mapping(uint256 => mapping(uint256 => PoolTurnTypes.RoundState)) internal roundStates;
 
     // payout order per circle (rotation). Fixed size = maxMembers
-    mapping(uint256 => address[]) private payoutOrder;
+    mapping(uint256 => address[]) internal payoutOrder;
 
     // insurance pool balances per circle (slashed fees + insurance fees go here)
     mapping(uint256 => uint256) public insurancePool;

@@ -2,6 +2,10 @@
 pragma solidity ^0.8.19;
 
 library PoolTurnEvent {
+    event CircleCreated(uint256 indexed circleId, address indexed creator);
+    event MemberJoined(
+        uint256 indexed circleId, address indexed member, uint256 collateralLocked, uint256 insuranceFee
+    );
     event RoundStarted(uint256 indexed circleId, uint256 indexed roundId, uint256 startedAt);
     event ContributionMade(uint256 indexed circleId, uint256 indexed roundId, address indexed member, uint256 amount);
     event DefaultDetected(uint256 indexed circleId, uint256 indexed roundId, address indexed member, uint256 slashed);

@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import { Test } from "forge-std/Test.sol";
 import { PoolTurnSecure } from "../src/PoolTurnSecure.sol";
+import { PoolTurnTypes } from "../src/types/PoolTurnTypes.sol";
 import { YieldManager } from "../src/YieldManager.sol";
 import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -242,8 +243,8 @@ contract YieldAndRewardsTest is Test {
         }
 
         // Circle should be completed
-        (,,,,,,,,,,, PoolTurnSecure.CircleState state) = poolturn.getCircleInfo(circleId);
-        assertEq(uint256(state), uint256(PoolTurnSecure.CircleState.Completed));
+        (,,,,,,,,,,, PoolTurnTypes.CircleState state) = poolturn.getCircleInfo(circleId);
+        assertEq(uint256(state), uint256(PoolTurnTypes.CircleState.Completed));
 
         // All 4 members have perfect payment, so each gets 25 USDC
         uint256 expectedReward = CREATOR_REWARD / 4;
