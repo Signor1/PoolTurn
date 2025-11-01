@@ -19,7 +19,33 @@ export const PoolTurnSecureABI = [
   },
   {
     "type": "function",
+    "name": "MAX_GRACE_PERIOD",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MAX_MEMBERS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIN_GRACE_PERIOD",
     "inputs": [],
     "outputs": [
       {
@@ -123,6 +149,11 @@ export const PoolTurnSecureABI = [
       },
       {
         "name": "insuranceFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "gracePeriod",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -262,6 +293,11 @@ export const PoolTurnSecureABI = [
       },
       {
         "name": "creatorRewardAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "gracePeriod",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -425,6 +461,11 @@ export const PoolTurnSecureABI = [
         "internalType": "uint256"
       },
       {
+        "name": "gracePeriod",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "startTimestamp",
         "type": "uint256",
         "internalType": "uint256"
@@ -538,6 +579,11 @@ export const PoolTurnSecureABI = [
           },
           {
             "name": "insuranceFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "gracePeriod",
             "type": "uint256",
             "internalType": "uint256"
           },
