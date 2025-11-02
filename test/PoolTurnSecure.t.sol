@@ -111,7 +111,10 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
 
         assertEq(circleId, 1);
@@ -198,7 +201,10 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
     }
 
@@ -207,7 +213,18 @@ contract PoolTurnSecureTest is Test {
 
         vm.expectRevert("contrib zero");
         poolturn.createCircle(
-            "", "", address(token), 0, PERIOD_DURATION, MAX_MEMBERS, COLLATERAL_FACTOR, INSURANCE_FEE, emptyOrder, false, 0, 1 hours
+            "",
+            "",
+            address(token),
+            0,
+            PERIOD_DURATION,
+            MAX_MEMBERS,
+            COLLATERAL_FACTOR,
+            INSURANCE_FEE,
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
     }
 
@@ -224,7 +241,10 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
     }
 
@@ -242,7 +262,10 @@ contract PoolTurnSecureTest is Test {
             1, // Less than minimum 2
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
 
         // Too many members
@@ -256,7 +279,10 @@ contract PoolTurnSecureTest is Test {
             101, // More than MAX_MEMBERS (100)
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
     }
 
@@ -273,7 +299,10 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             0, // Less than minimum 1
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
     }
 
@@ -750,7 +779,10 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
 
         // Unpause
@@ -766,7 +798,10 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             COLLATERAL_FACTOR,
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
 
         assertEq(circleId, 1);
@@ -901,7 +936,10 @@ contract PoolTurnSecureTest is Test {
             MAX_MEMBERS,
             1, // Low collateral factor (only 1x contribution)
             INSURANCE_FEE,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
 
         // Fill and activate circle
@@ -960,7 +998,10 @@ contract PoolTurnSecureTest is Test {
             maxMembers,
             collateralFactor,
             insuranceFee,
-            emptyOrder, false, 0, 1 hours
+            emptyOrder,
+            false,
+            0,
+            1 hours
         );
 
         // Verify circle was created successfully
@@ -1044,7 +1085,7 @@ contract PoolTurnSecureTest is Test {
             3 days // valid
         );
 
-        (,,,,,,,uint256 gracePeriod,,,,) = poolturn.getCircleInfo(circleId);
+        (,,,,,,, uint256 gracePeriod,,,,) = poolturn.getCircleInfo(circleId);
         assertEq(gracePeriod, 3 days);
     }
 
