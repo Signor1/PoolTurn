@@ -112,7 +112,7 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         if (initialPayoutOrder.length > 0) {
             // require(initialPayoutOrder.length == maxMembers, "payoutOrder length mismatch");
             if (initialPayoutOrder.length != maxMembers) revert("payoutOrder length mismatch");
-            _validatePayoutOrder(initialPayoutOrder);
+            PoolTurnHelper._validatePayoutOrder(initialPayoutOrder);
             payoutOrder[circleId] = initialPayoutOrder;
             c.rotationLocked = true;
             emit PoolTurnEvent.PayoutOrderSet(circleId, initialPayoutOrder);
@@ -200,7 +200,11 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
             // If payoutOrder not previously set, create deterministic rotation from current members
             if (payoutOrder[circleId].length == 0) {
                 // M-04 improvement: Pseudo-random shuffle using block data
-                address[] memory shuffled = _shuffleMembers(membersList[circleId], circleId);
+                // address[] memory shuffled = _shuffleMembers(membersList[circleId], circleId);
+                address[] memory shuffled = PoolTurnHelper._shuffleMembers(
+                    membersList,
+                    circleId
+                );
 
                 // Store shuffled order
                 for (uint256 i = 0; i < shuffled.length; i++) {
@@ -260,7 +264,15 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
 
         // if everyone paid, finalize immediately
         if (r.depositsMade == c.maxMembers) {
-            _finalizeRound(circleId, roundId);
+            PoolTurnHelper._finalizeRound(
+                circles,
+                roundStates,
+                payoutOrder,
+                members,
+                pendingPayouts,
+                circleId,
+                roundId
+            );
         }
     }
 
@@ -446,131 +458,6 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         c.token.safeTransfer(msg.sender, rewardPerMember);
         emit PoolTurnEvent.CreatorRewardClaimed(circleId, msg.sender, rewardPerMember);
     }
-
-    // --- Internal helpers ---
-    /**
-     * Immediate finalization when all paid early
-     */
-    function _finalizeRound(uint256 circleId, uint256 roundId) internal {
-        PoolTurnTypes.Circle storage c = circles[circleId];
-        PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
-        // require(!r.settled, "already settled");
-        if(r.settled) revert("already settled");
-
-        uint256 payers = r.depositsMade;
-        uint256 pot = c.contributionAmount * payers;
-
-        // no slashing needed
-
-        address winner = payoutOrder[circleId][roundId - 1];
-
-        // Validate winner is an actual member
-        // require(members[circleId][winner].exists, "winner not a member");
-        if(!members[circleId][winner].exists) revert("winner not a member");
-
-        r.winner = winner;
-        r.settled = true;
-        pendingPayouts[circleId][winner] += pot;
-
-        emit PoolTurnEvent.WinnerSelected(circleId, roundId, winner, pot);
-
-        // next round
-        unchecked {
-            c.currentRound += 1;
-        } // Safe unchecked increment
-
-        if (c.currentRound > c.maxMembers) {
-            c.state = PoolTurnTypes.CircleState.Completed;
-            emit PoolTurnEvent.CircleCompleted(circleId);
-        } else {
-            // Use fixed schedule to prevent drift
-            c.roundStart = c.startTimestamp + ((c.currentRound - 1) * c.periodDuration);
-            emit PoolTurnEvent.RoundStarted(circleId, c.currentRound, c.roundStart);
-        }
-    }
-
-    /**
-     * Validate payout order for duplicates and zero addresses
-     * Optimized: Uses memory array to track seen addresses, reducing redundant comparisons
-     */
-    function _validatePayoutOrder(address[] calldata order) private pure {
-        uint256 len = order.length;
-        require(len <= PoolTurnConstants.MAX_MEMBERS, "order exceeds MAX_MEMBERS");
-
-        // Use memory array to track seen addresses for efficient duplicate detection
-        address[] memory seen = new address[](len);
-
-        for (uint256 i = 0; i < len;) {
-            address current = order[i];
-            require(current != address(0), "zero address in payout order");
-
-            // Check against previously seen addresses only (more efficient than nested comparison)
-            for (uint256 j = 0; j < i;) {
-                require(seen[j] != current, "duplicate address in payout order");
-                unchecked {
-                    ++j;
-                }
-            }
-
-            seen[i] = current;
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    /**
-     * Pseudo-random shuffle using block data
-     * Note: This is not cryptographically secure randomness, but prevents
-     * first-joiner advantage and simple manipulation.
-     * For production, consider Chainlink VRF for true randomness.
-     */
-    function _shuffleMembers(address[] storage memberList, uint256 circleId) private view returns (address[] memory) {
-        uint256 len = memberList.length;
-        address[] memory shuffled = new address[](len);
-
-        // Copy to memory
-        for (uint256 i = 0; i < len;) {
-            shuffled[i] = memberList[i];
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Fisher-Yates shuffle with pseudo-random seed
-        // bytes32 seed = keccak256(abi.encodePacked(
-        //     block.timestamp,
-        //     block.prevrandao,  // replaces difficulty in post-merge Ethereum
-        //     block.number,
-        //     circleId,
-        //     len
-        // ));
-
-        // Inline assembly keccak256 (more efficient than abi.encodePacked)
-        bytes32 seed;
-        assembly {
-            // Get free memory pointer
-            let ptr := mload(0x40)
-            mstore(ptr, timestamp())
-            mstore(add(ptr, 0x20), prevrandao())
-            mstore(add(ptr, 0x40), number())
-            mstore(add(ptr, 0x60), circleId)
-            mstore(add(ptr, 0x80), len)
-            seed := keccak256(ptr, 0xa0) // hash 5 * 32 bytes
-        }
-
-        for (uint256 i = len - 1; i > 0;) {
-            uint256 j = uint256(seed) % (i + 1);
-            (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
-            seed = keccak256(abi.encodePacked(seed, i));
-            unchecked {
-                --i;
-            }
-        }
-
-        return shuffled;
-    }
-
     // --- Admin functions ---
 
     /**
