@@ -1,20 +1,18 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
+
 import { PoolTurnTypes } from "../types/PoolTurnTypes.sol";
 import { PoolTurnEvent } from "../events/PoolTurnEvent.sol";
 import { PoolTurnConstants } from "../constants/PoolTurnConstants.sol";
 
 library PoolTurnHelper {
-
     /**
      * Internal finalize routine. Uses rotation-based winner selection (deterministic).
      * Slashes collateral of defaulters by at most contributionAmount per default.
      * Topped pot = contributions + slashedCollateral + insurancePool (if needed).
      * Winner payout is credited to pendingPayouts for pull pattern.
      */
-    function _handleDefaultsAndFinalize
-    (
+    function _handleDefaultsAndFinalize(
         mapping(uint256 => PoolTurnTypes.Circle) storage circles,
         mapping(uint256 => mapping(uint256 => PoolTurnTypes.RoundState)) storage roundStates,
         mapping(uint256 => address[]) storage membersList,
@@ -24,12 +22,15 @@ library PoolTurnHelper {
         mapping(uint256 => mapping(address => uint256)) storage pendingPayouts,
         mapping(address => uint256) storage globalDefaults,
         mapping(address => bool) storage globallyBanned,
-        uint256 circleId, uint256 roundId
-    ) internal {
+        uint256 circleId,
+        uint256 roundId
+    )
+        internal
+    {
         PoolTurnTypes.Circle storage c = circles[circleId];
         PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
         // require(!r.settled, "already settled");
-        if(r.settled) revert("already settled");
+        if (r.settled) revert("already settled");
 
         address[] storage mems = membersList[circleId];
         uint256 memsLen = mems.length; // Cache length
@@ -97,7 +98,7 @@ library PoolTurnHelper {
 
         // Validate winner is an actual member
         // require(members[circleId][winner].exists, "winner not a member");
-        if(!members[circleId][winner].exists) revert("winner not a member");
+        if (!members[circleId][winner].exists) revert("winner not a member");
 
         r.winner = winner;
 
@@ -125,8 +126,7 @@ library PoolTurnHelper {
     /**
      * Immediate finalization when all paid early
      */
-    function _finalizeRound
-    (
+    function _finalizeRound(
         mapping(uint256 => PoolTurnTypes.Circle) storage circles,
         mapping(uint256 => mapping(uint256 => PoolTurnTypes.RoundState)) storage roundStates,
         mapping(uint256 => address[]) storage payoutOrder,
@@ -134,11 +134,13 @@ library PoolTurnHelper {
         mapping(uint256 => mapping(address => uint256)) storage pendingPayouts,
         uint256 circleId,
         uint256 roundId
-    ) internal {
+    )
+        internal
+    {
         PoolTurnTypes.Circle storage c = circles[circleId];
         PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
         // require(!r.settled, "already settled");
-        if(r.settled) revert("already settled");
+        if (r.settled) revert("already settled");
 
         uint256 payers = r.depositsMade;
         uint256 pot = c.contributionAmount * payers;
@@ -149,7 +151,7 @@ library PoolTurnHelper {
 
         // Validate winner is an actual member
         // require(members[circleId][winner].exists, "winner not a member");
-        if(!members[circleId][winner].exists) revert("winner not a member");
+        if (!members[circleId][winner].exists) revert("winner not a member");
 
         r.winner = winner;
         r.settled = true;
@@ -178,12 +180,14 @@ library PoolTurnHelper {
      * first-joiner advantage and simple manipulation.
      * For production, consider Chainlink VRF for true randomness.
      */
-    function _shuffleMembers
-    (
-
-        mapping(uint256 => address[]) storage membersList,   
+    function _shuffleMembers(
+        mapping(uint256 => address[]) storage membersList,
         uint256 circleId
-    ) internal view returns (address[] memory) {
+    )
+        internal
+        view
+        returns (address[] memory)
+    {
         uint256 len = membersList[circleId].length;
         address[] memory memberList = membersList[circleId];
         address[] memory shuffled = new address[](len);
