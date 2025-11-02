@@ -38,7 +38,7 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
     modifier onlyActive(uint256 circleId) {
         // require(circles[circleId].state == PoolTurnTypes.CircleState.Active, "circle not active");
         // _;
-        if (circles[circleId].state == PoolTurnTypes.CircleState.Active) revert("circle not active");
+        if (circles[circleId].state != PoolTurnTypes.CircleState.Active) revert("circle not active");
         _;
     }
 
