@@ -28,12 +28,16 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
 
     // --- Modifiers ---
     modifier circleExists(uint256 circleId) {
-        require(circles[circleId].creator != address(0), "circle does not exist");
+        // require(circles[circleId].creator != address(0), "circle does not exist");
+        // _;
+        if(circles[circleId].creator == address(0)) revert("circle does not exist");
         _;
     }
 
     modifier onlyActive(uint256 circleId) {
-        require(circles[circleId].state == PoolTurnTypes.CircleState.Active, "circle not active");
+        // require(circles[circleId].state == PoolTurnTypes.CircleState.Active, "circle not active");
+        // _;
+        if(circles[circleId].state == PoolTurnTypes.CircleState.Active) revert("circle not active");
         _;
     }
 
@@ -67,13 +71,20 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         whenNotPaused
         returns (uint256)
     {
-        require(token != address(0), "token zero");
-        require(token.code.length > 0, "not a contract");
-        require(contributionAmount > 0, "contrib zero");
-        require(periodDuration >= PoolTurnConstants.MIN_PERIOD_SECONDS, "period too short");
-        require(maxMembers >= 2 && maxMembers <= PoolTurnConstants.MAX_MEMBERS, "invalid members");
-        require(collateralFactor >= 1, "collateralFactor < 1");
-        require(gracePeriod >= PoolTurnConstants.MIN_GRACE_PERIOD && gracePeriod <= PoolTurnConstants.MAX_GRACE_PERIOD, "invalid grace period");
+        // require(token != address(0), "token zero");
+        if (token == address(0))revert("token zero");
+        // require(token.code.length > 0, "not a contract");
+        if (token.code.length == 0) revert("not a contract");
+        // require(contributionAmount > 0, "contrib zero");
+        if (contributionAmount == 0) revert("contrib zero");
+        // require(periodDuration >= PoolTurnConstants.MIN_PERIOD_SECONDS, "period too short");
+        if (periodDuration < PoolTurnConstants.MIN_PERIOD_SECONDS) revert("period too short");
+        // require(maxMembers >= 2 && maxMembers <= PoolTurnConstants.MAX_MEMBERS, "invalid members");
+        if (maxMembers < 2 || maxMembers > PoolTurnConstants.MAX_MEMBERS) revert("invalid members");
+        // require(collateralFactor >= 1, "collateralFactor < 1");
+        if (collateralFactor < 1) revert("collateralFactor < 1");
+        // require(gracePeriod >= PoolTurnConstants.MIN_GRACE_PERIOD && gracePeriod <= PoolTurnConstants.MAX_GRACE_PERIOD, "invalid grace period");
+        if (gracePeriod < PoolTurnConstants.MIN_GRACE_PERIOD || gracePeriod > PoolTurnConstants.MAX_GRACE_PERIOD) revert("invalid grace period");
 
         uint256 circleId = nextCircleId++;
 
@@ -90,14 +101,16 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         c.collateralFactor = collateralFactor;
 
         // Validate insurance fee is reasonable (max 100% of contribution amount)
-        require(insuranceFee <= contributionAmount, "insurance fee too high");
+        // require(insuranceFee <= contributionAmount, "insurance fee too high");
+        if (insuranceFee > contributionAmount) revert("insurance fee too high");
         c.insuranceFee = insuranceFee;
         c.gracePeriod = gracePeriod;
         c.state = PoolTurnTypes.CircleState.Open;
 
         // if initial payoutOrder provided, validate and lock it
         if (initialPayoutOrder.length > 0) {
-            require(initialPayoutOrder.length == maxMembers, "payoutOrder length mismatch");
+            // require(initialPayoutOrder.length == maxMembers, "payoutOrder length mismatch");
+            if (initialPayoutOrder.length != maxMembers) revert("payoutOrder length mismatch");
             _validatePayoutOrder(initialPayoutOrder);
             payoutOrder[circleId] = initialPayoutOrder;
             c.rotationLocked = true;
@@ -106,7 +119,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
 
         // Enable yield generation if requested and YieldManager is set
         if (enableYield) {
-            require(address(yieldManager) != address(0), "YieldManager not set");
+            // require(address(yieldManager) != address(0), "YieldManager not set");
+            if (address(yieldManager) == address(0)) revert("YieldManager not set");
             yieldGenerationEnabled[circleId] = true;
             yieldManager.setYieldEnabled(circleId, true);
             emit PoolTurnEvent.YieldGenerationToggled(circleId, true);
@@ -130,15 +144,20 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      */
     function joinCircle(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
         PoolTurnTypes.Circle storage c = circles[circleId];
-        require(c.state == PoolTurnTypes.CircleState.Open, "not open");
-        require(membersList[circleId].length < c.maxMembers, "full");
-        require(!members[circleId][msg.sender].exists, "already joined");
+        // require(c.state == PoolTurnTypes.CircleState.Open, "not open");
+        if(c.state != PoolTurnTypes.CircleState.Open) revert("not open");
+        // require(membersList[circleId].length < c.maxMembers, "full");
+        if(membersList[circleId].length >= c.maxMembers) revert("full");
+        // require(!members[circleId][msg.sender].exists, "already joined");
+        if(members[circleId][msg.sender].exists) revert("already joined");
 
         // Check global ban status
-        require(!globallyBanned[msg.sender], "globally banned");
+        // require(!globallyBanned[msg.sender], "globally banned");
+        if(globallyBanned[msg.sender]) revert("globally banned");
 
         PoolTurnTypes.Member storage m = members[circleId][msg.sender];
-        require(!m.banned, "member banned");
+        // require(!m.banned, "member banned");
+        if(m.banned) revert("member banned");
 
         uint256 collateral = c.contributionAmount * c.collateralFactor;
         uint256 totalLock = collateral + c.insuranceFee;
@@ -150,7 +169,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         // Verify transfer was successful
         uint256 thisBalAfter = c.token.balanceOf(address(this));
         uint256 received = thisBalAfter - before;
-        require(received >= totalLock, "token transfer shortfall");
+        // require(received >= totalLock, "token transfer shortfall");
+        if(received < totalLock) revert("token transfer shortfall");
 
         // record member
         m.exists = true;
@@ -217,7 +237,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
     {
         PoolTurnTypes.Circle storage c = circles[circleId];
         PoolTurnTypes.Member storage m = members[circleId][msg.sender];
-        require(m.exists, "not a member");
+        // require(m.exists, "not a member");
+        if(!m.exists) revert("not a member");
 
         uint256 roundId = c.currentRound;
         PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
@@ -228,7 +249,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         c.token.safeTransferFrom(msg.sender, address(this), c.contributionAmount);
         uint256 thisBal = c.token.balanceOf(address(this));
         uint256 received = thisBal - before;
-        require(received >= c.contributionAmount, "transfer shortfall");
+        // require(received >= c.contributionAmount, "transfer shortfall");
+        if(received < c.contributionAmount) revert("transfer shortfall");
 
         r.deposited[msg.sender] = true;
         r.depositsMade += 1;
@@ -256,8 +278,10 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         PoolTurnTypes.Circle storage c = circles[circleId];
         uint256 roundId = c.currentRound;
         PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
-        require(!r.settled, "already settled");
-        require(block.timestamp >= c.roundStart + c.periodDuration + c.gracePeriod, "grace period active");
+        // require(!r.settled, "already settled");
+        if(r.settled) revert("already settled");
+        // require(block.timestamp >= c.roundStart + c.periodDuration + c.gracePeriod, "grace period active");
+        if(block.timestamp < c.roundStart + c.periodDuration + c.gracePeriod) revert("grace period active");
 
         _handleDefaultsAndFinalize(circleId, roundId);
     }
@@ -267,7 +291,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      */
     function claimPayout(uint256 circleId) external nonReentrant whenNotPaused {
         uint256 amount = pendingPayouts[circleId][msg.sender];
-        require(amount > 0, "no payout");
+        // require(amount > 0, "no payout");
+        if(amount == 0) revert("no payout");
         pendingPayouts[circleId][msg.sender] = 0;
         PoolTurnTypes.Circle storage c = circles[circleId];
         c.token.safeTransfer(msg.sender, amount);
@@ -280,10 +305,18 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      */
     function withdrawCollateral(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
         PoolTurnTypes.Circle storage c = circles[circleId];
-        require(c.state == PoolTurnTypes.CircleState.Completed || c.state == PoolTurnTypes.CircleState.Cancelled, "circle not finished");
+        // require(c.state == PoolTurnTypes.CircleState.Completed || c.state == PoolTurnTypes.CircleState.Cancelled, "circle not finished");
+        if(
+            c.state != PoolTurnTypes.CircleState.Completed 
+            && 
+            c.state != PoolTurnTypes.CircleState.Cancelled
+        ) revert("circle not finished");
+
         PoolTurnTypes.Member storage m = members[circleId][msg.sender];
-        require(m.exists, "not member");
-        require(!m.withdrawnCollateral, "already withdrawn");
+        // require(m.exists, "not member");
+        if(!m.exists) revert("not member");
+        // require(!m.withdrawnCollateral, "already withdrawn");
+        if(m.withdrawnCollateral) revert("already withdrawn");
 
         uint256 amount = m.collateralLocked;
         m.collateralLocked = 0;
@@ -300,8 +333,10 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      * @param circleId The circle ID
      */
     function harvestYield(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
-        require(yieldGenerationEnabled[circleId], "yield not enabled");
-        require(address(yieldManager) != address(0), "YieldManager not set");
+        // require(yieldGenerationEnabled[circleId], "yield not enabled");
+        if(!yieldGenerationEnabled[circleId]) revert("yield not enabled");
+        // require(address(yieldManager) != address(0), "YieldManager not set");
+        if(address(yieldManager) == address(0)) revert("YieldManager not set");
 
         // Harvest yield from YieldManager
         (uint256 memberShare,) = yieldManager.harvestYield(circleId);
@@ -311,7 +346,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         // Distribute yield proportionally to all circle members
         address[] storage mems = membersList[circleId];
         uint256 memsLen = mems.length;
-        require(memsLen > 0, "no members");
+        // require(memsLen > 0, "no members");
+        if(memsLen == 0) revert("no members");
 
         uint256 sharePerMember = memberShare / memsLen;
 
@@ -331,7 +367,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      */
     function claimYield(uint256 circleId) external nonReentrant whenNotPaused circleExists(circleId) {
         uint256 yieldAmount = memberYieldShares[circleId][msg.sender];
-        require(yieldAmount > 0, "no yield to claim");
+        // require(yieldAmount > 0, "no yield to claim");
+        if(yieldAmount == 0) revert("no yield to claim");
 
         memberYieldShares[circleId][msg.sender] = 0;
 
@@ -354,12 +391,16 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         require(c.state == PoolTurnTypes.CircleState.Completed, "circle not completed");
 
         PoolTurnTypes.Member storage m = members[circleId][msg.sender];
-        require(m.exists, "not a member");
-        require(m.defaults == 0, "has defaults, not eligible");
-        require(!creatorRewardClaimed[circleId][msg.sender], "already claimed");
+        // require(m.exists, "not a member");
+        if(!m.exists) revert("not a member");
+        // require(m.defaults == 0, "has defaults, not eligible");
+        if(m.defaults != 0) revert("has defaults, not eligible");
+        // require(!creatorRewardClaimed[circleId][msg.sender], "already claimed");
+        if(creatorRewardClaimed[circleId][msg.sender]) revert("already claimed");
 
         uint256 rewardPool = creatorRewardPool[circleId];
-        require(rewardPool > 0, "no reward pool");
+        // require(rewardPool > 0, "no reward pool");
+        if(rewardPool == 0) revert("no reward pool");
 
         // Count members with perfect payment (0 defaults)
         address[] storage mems = membersList[circleId];
@@ -377,10 +418,12 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
             }
         }
 
-        require(perfectMembers > 0, "no perfect members");
+        // require(perfectMembers > 0, "no perfect members");
+        if(perfectMembers == 0) revert("no perfect members");
 
         uint256 rewardPerMember = rewardPool / perfectMembers;
-        require(rewardPerMember > 0, "reward too small");
+        // require(rewardPerMember > 0, "reward too small");
+        if(rewardPerMember == 0) revert("reward too small");
 
         // Mark as claimed
         creatorRewardClaimed[circleId][msg.sender] = true;
@@ -401,7 +444,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
     function _handleDefaultsAndFinalize(uint256 circleId, uint256 roundId) internal {
         PoolTurnTypes.Circle storage c = circles[circleId];
         PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
-        require(!r.settled, "already settled");
+        // require(!r.settled, "already settled");
+        if(r.settled) revert("already settled");
 
         address[] storage mems = membersList[circleId];
         uint256 memsLen = mems.length; // Cache length
@@ -468,7 +512,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         address winner = payoutOrder[circleId][roundId - 1];
 
         // Validate winner is an actual member
-        require(members[circleId][winner].exists, "winner not a member");
+        // require(members[circleId][winner].exists, "winner not a member");
+        if(!members[circleId][winner].exists) revert("winner not a member");
 
         r.winner = winner;
 
@@ -499,7 +544,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
     function _finalizeRound(uint256 circleId, uint256 roundId) internal {
         PoolTurnTypes.Circle storage c = circles[circleId];
         PoolTurnTypes.RoundState storage r = roundStates[circleId][roundId];
-        require(!r.settled, "already settled");
+        // require(!r.settled, "already settled");
+        if(r.settled) revert("already settled");
 
         uint256 payers = r.depositsMade;
         uint256 pot = c.contributionAmount * payers;
@@ -509,7 +555,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         address winner = payoutOrder[circleId][roundId - 1];
 
         // Validate winner is an actual member
-        require(members[circleId][winner].exists, "winner not a member");
+        // require(members[circleId][winner].exists, "winner not a member");
+        if(!members[circleId][winner].exists) revert("winner not a member");
 
         r.winner = winner;
         r.settled = true;
@@ -621,7 +668,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      * @param _yieldManager Address of the YieldManager contract
      */
     function setYieldManager(address _yieldManager) external onlyOwner {
-        require(_yieldManager != address(0), "zero address");
+        // require(_yieldManager != address(0), "zero address");
+        if(_yieldManager == address(0)) revert("zero address");
         yieldManager = YieldManager(_yieldManager);
         emit PoolTurnEvent.YieldManagerSet(_yieldManager);
     }
@@ -656,9 +704,12 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
         nonReentrant
     {
         PoolTurnTypes.Circle storage c = circles[circleId];
-        require(c.state == PoolTurnTypes.CircleState.Cancelled, "circle not cancelled");
-        require(to != address(0), "zero recipient");
-        require(to != address(this), "cannot withdraw to self"); // L-02 fix
+        // require(c.state == PoolTurnTypes.CircleState.Cancelled, "circle not cancelled");
+        if(c.state != PoolTurnTypes.CircleState.Cancelled) revert("circle not cancelled");
+        // require(to != address(0), "zero recipient");
+        if(to == address(0)) revert("zero recipient");
+        // require(to != address(this), "cannot withdraw to self"); // L-02 fix
+        if(to == address(this)) revert("cannot withdraw to self");
 
         // ensure no pending payouts remain
         // (Note: We conservatively check that total pending payouts are zero to avoid stealing user funds.)
@@ -672,10 +723,12 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
                 ++i;
             }
         }
-        require(totalPending == 0, "pending payouts exist");
+        // require(totalPending == 0, "pending payouts exist");
+        if(totalPending != 0) revert("pending payouts exist");
 
         // Ensure insurance pool is empty (belongs to members)
-        require(insurancePool[circleId] == 0, "insurance pool not empty");
+        // require(insurancePool[circleId] == 0, "insurance pool not empty");
+        if(insurancePool[circleId] != 0) revert("insurance pool not empty");
 
         c.token.safeTransfer(to, amount);
         emit PoolTurnEvent.EmergencyWithdraw(circleId, to, amount);
@@ -686,7 +739,8 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      */
     function cancelCircle(uint256 circleId) external circleExists(circleId) nonReentrant onlyOwner {
         PoolTurnTypes.Circle storage c = circles[circleId];
-        require(c.state == PoolTurnTypes.CircleState.Open, "cannot cancel active/completed");
+        // require(c.state == PoolTurnTypes.CircleState.Open, "cannot cancel active/completed");
+        if(c.state != PoolTurnTypes.CircleState.Open) revert("cannot cancel active/completed");
 
         // refund any joined members their locked sums
         address[] storage mems = membersList[circleId];
@@ -770,8 +824,10 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
      * @param limit Maximum number of circles to return (max 100)
      */
     function getCircles(uint256 offset, uint256 limit) external view returns (PoolTurnTypes.Circle[] memory circles_) {
-        require(limit > 0 && limit <= 100, "limit must be 1-100");
-        require(offset > 0, "offset must be >= 1");
+        // require(limit > 0 && limit <= 100, "limit must be 1-100");
+        if(limit == 0 || limit > 100) revert("limit must be 1-100");
+        // require(offset > 0, "offset must be >= 1");
+        if(offset == 0) revert("offset must be >= 1");
 
         // Calculate actual range
         uint256 start = offset;
