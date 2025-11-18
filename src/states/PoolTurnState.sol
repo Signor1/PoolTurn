@@ -49,6 +49,8 @@ abstract contract PoolTurn {
     // Track if member has claimed creator reward
     mapping(uint256 => mapping(address => bool)) public creatorRewardClaimed;
 
+
+
     function getMembers(uint256 circleId) external view returns (address[] memory) {
         return membersList[circleId];
     }

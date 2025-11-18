@@ -553,5 +553,5 @@ contract PoolTurnSecure is PoolTurn, ReentrancyGuard, Pausable, Ownable {
 
         c.state = PoolTurnTypes.CircleState.Cancelled;
         emit PoolTurnEvent.CircleCancelled(circleId);
-    
+    }
 }
