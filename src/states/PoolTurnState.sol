@@ -6,13 +6,13 @@ import { YieldManager } from "../YieldManager.sol";
 
 abstract contract PoolTurn {
     uint256 public nextCircleId = 1;
-    mapping(uint256 => PoolTurnTypes.Circle) public circles;
+    mapping(uint256 => PoolTurnTypes.Circle) internal circles;
 
     // members list per circle
     mapping(uint256 => address[]) internal membersList;
 
     // member info per circle
-    mapping(uint256 => mapping(address => PoolTurnTypes.Member)) public members;
+    mapping(uint256 => mapping(address => PoolTurnTypes.Member)) internal members;
 
     // round states per circle
     mapping(uint256 => mapping(uint256 => PoolTurnTypes.RoundState)) internal roundStates;
@@ -21,12 +21,12 @@ abstract contract PoolTurn {
     mapping(uint256 => address[]) internal payoutOrder;
 
     // insurance pool balances per circle (slashed fees + insurance fees go here)
-    mapping(uint256 => uint256) public insurancePool;
+    mapping(uint256 => uint256) internal insurancePool;
 
     // winner payouts credited (pull model). token amounts credited per address per circle
     mapping(uint256 => mapping(address => uint256)) public pendingPayouts;
 
-    mapping(uint256 => PoolTurnTypes.CircleDetails) public circleDetails;
+    mapping(uint256 => PoolTurnTypes.CircleDetails) internal circleDetails;
 
     // Global ban tracking
     mapping(address => bool) public globallyBanned;
@@ -38,16 +38,16 @@ abstract contract PoolTurn {
     YieldManager public yieldManager;
 
     // Creator reward pool per circle (optional bonus for members with perfect payment)
-    mapping(uint256 => uint256) public creatorRewardPool;
+    mapping(uint256 => uint256) internal creatorRewardPool;
 
     // Track member yield shares (accumulated from insurance pool yield)
-    mapping(uint256 => mapping(address => uint256)) public memberYieldShares;
+    mapping(uint256 => mapping(address => uint256)) internal memberYieldShares;
 
     // Track if yield generation is enabled per circle
-    mapping(uint256 => bool) public yieldGenerationEnabled;
+    mapping(uint256 => bool) internal yieldGenerationEnabled;
 
     // Track if member has claimed creator reward
-    mapping(uint256 => mapping(address => bool)) public creatorRewardClaimed;
+    mapping(uint256 => mapping(address => bool)) internal creatorRewardClaimed;
 
 
 
