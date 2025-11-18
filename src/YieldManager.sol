@@ -217,7 +217,7 @@ contract YieldManager is Ownable {
         // Get current proportional aToken balance
         uint256 totalATokens = aUSDC.balanceOf(address(this));
         uint256 currentATokenBalance = (totalATokens * circleDeposits[circleId]) / totalDeposits;
-        uint256 lastBalance = lastATokenBalance[circleId];
+        // uint256 lastBalance = lastATokenBalance[circleId];
 
         // Yield = current aToken balance - principal - already accumulated
         if (currentATokenBalance <= circleDeposits[circleId] + accumulatedYield[circleId]) {

@@ -306,7 +306,7 @@ contract YieldAndRewardsTest is Test {
         }
 
         // Only Alice, Carol, and Dave are eligible (3 members)
-        uint256 expectedReward = CREATOR_REWARD / 3;
+        // uint256 expectedReward = CREATOR_REWARD / 3;
 
         // Alice can claim
         vm.prank(alice);

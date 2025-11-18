@@ -128,7 +128,7 @@ contract PoolTurnSecureTest is Test {
             uint256 maxMembers,
             uint256 collateralFactor,
             uint256 insuranceFee,
-            uint256 gracePeriod,
+            ,
             uint256 startTimestamp,
             uint256 currentRound,
             uint256 roundStart,
